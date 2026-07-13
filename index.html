@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Absolute Devs</title>
+  <meta name="description" content="Absolute Devs — building clean, reliable software." />
+  <meta name="color-scheme" content="dark light" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Absolute Devs" />
+  <meta property="og:description" content="Building clean, reliable software." />
+  <meta property="og:type" content="website" />
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23111827'/><text x='50' y='68' font-size='60' font-family='Arial,sans-serif' font-weight='700' text-anchor='middle' fill='%2360a5fa'>A</text></svg>" />
+
+  <style>
+    :root {
+      --bg: #0a0e1a;
+      --bg-soft: #111827;
+      --fg: #e5e7eb;
+      --fg-muted: #9ca3af;
+      --accent: #60a5fa;
+      --border: rgba(255, 255, 255, 0.08);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* Subtle radial glow backdrop */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(600px circle at 20% 15%, rgba(96, 165, 250, 0.10), transparent 45%),
+        radial-gradient(700px circle at 85% 80%, rgba(129, 140, 248, 0.08), transparent 45%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    main {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 2rem 1.5rem;
+      max-width: 720px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--fg-muted);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.4rem 0.9rem;
+      margin-bottom: 2rem;
+    }
+
+    .badge .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 8px #22c55e;
+    }
+
+    h1 {
+      font-size: clamp(2.6rem, 8vw, 4.75rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+    }
+
+    h1 .accent {
+      background: linear-gradient(120deg, var(--accent), #818cf8);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .tagline {
+      margin-top: 1.25rem;
+      font-size: clamp(1.05rem, 2.5vw, 1.3rem);
+      color: var(--fg-muted);
+      max-width: 32rem;
+    }
+
+    .actions {
+      margin-top: 2.5rem;
+      display: flex;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      padding: 0.8rem 1.6rem;
+      border-radius: 12px;
+      min-height: 44px;
+      transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .btn:hover { transform: translateY(-2px); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0a0e1a;
+    }
+    .btn-primary:hover { background: #7db6ff; }
+
+    .btn-ghost {
+      color: var(--fg);
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .btn-ghost:hover { border-color: var(--accent); }
+
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 1.5rem;
+      font-size: 0.85rem;
+      color: var(--fg-muted);
+      border-top: 1px solid var(--border);
+    }
+
+    footer a { color: var(--fg-muted); text-decoration: none; }
+    footer a:hover { color: var(--accent); }
+
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) {
+        --bg: #f8fafc;
+        --bg-soft: #ffffff;
+        --fg: #0f172a;
+        --fg-muted: #475569;
+        --border: rgba(0, 0, 0, 0.1);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <span class="badge"><span class="dot"></span> Available for work</span>
+
+    <h1>Absolute <span class="accent">Devs</span></h1>
+
+    <p class="tagline">
+      We build clean, reliable software — from idea to shipped product.
+    </p>
+
+    <div class="actions">
+      <a class="btn btn-primary" href="mailto:hello@absolutedevs.dev">Get in touch</a>
+      <a class="btn btn-ghost" href="https://github.com/Harshbhalodiya099" target="_blank" rel="noopener">GitHub &rarr;</a>
+    </div>
+  </main>
+
+  <footer>
+    &copy; <span id="year"></span> Absolute Devs. All rights reserved.
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
