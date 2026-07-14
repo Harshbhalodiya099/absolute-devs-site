@@ -158,6 +158,181 @@
         --border: rgba(0, 0, 0, 0.1);
       }
     }
+
+    /* ---------- Thoughts Wall ---------- */
+    .wall {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 720px;
+      margin: 0 auto 4rem;
+      padding: 0 1.5rem;
+    }
+
+    .wall-head {
+      text-align: center;
+      margin-bottom: 1.75rem;
+    }
+
+    .wall-head h2 {
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .wall-head p {
+      margin-top: 0.5rem;
+      color: var(--fg-muted);
+      font-size: 0.98rem;
+    }
+
+    .composer {
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.1rem;
+    }
+
+    .composer textarea {
+      width: 100%;
+      resize: vertical;
+      min-height: 92px;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--fg);
+      font: inherit;
+      font-size: 1rem;
+      line-height: 1.55;
+    }
+    .composer textarea::placeholder { color: var(--fg-muted); }
+
+    .composer-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 0.75rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .moods { display: flex; gap: 0.35rem; }
+
+    .mood {
+      font-size: 1.15rem;
+      line-height: 1;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 0.35rem 0.45rem;
+      cursor: pointer;
+      filter: grayscale(0.7);
+      opacity: 0.7;
+      transition: transform 0.12s ease, filter 0.2s ease, opacity 0.2s ease, border-color 0.2s ease;
+    }
+    .mood:hover { transform: translateY(-2px) scale(1.1); }
+    .mood[aria-pressed="true"] {
+      filter: none;
+      opacity: 1;
+      border-color: var(--border);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .composer .spacer { flex: 1; }
+
+    .count {
+      font-size: 0.8rem;
+      color: var(--fg-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .send {
+      font: inherit;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: #0a0e1a;
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      padding: 0.6rem 1.1rem;
+      min-height: 40px;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.2s ease, opacity 0.2s ease;
+    }
+    .send:hover:not(:disabled) { transform: translateY(-2px); background: #7db6ff; }
+    .send:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .hint {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--fg-muted);
+      margin-top: 0.75rem;
+    }
+    .hint a { color: var(--accent); text-decoration: none; }
+    .hint a:hover { text-decoration: underline; }
+
+    .notes {
+      list-style: none;
+      margin-top: 1.75rem;
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .note {
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0.95rem 1.1rem;
+      animation: pop 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes pop {
+      from { opacity: 0; transform: translateY(8px) scale(0.98); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .note-top {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      margin-bottom: 0.4rem;
+    }
+    .note-top .emoji { font-size: 1.1rem; line-height: 1; }
+    .note-top time { font-size: 0.75rem; color: var(--fg-muted); }
+    .note-top .del {
+      margin-left: auto;
+      background: transparent;
+      border: none;
+      color: var(--fg-muted);
+      cursor: pointer;
+      font-size: 0.85rem;
+      line-height: 1;
+      padding: 0.2rem;
+      border-radius: 6px;
+      opacity: 0;
+      transition: opacity 0.2s ease, color 0.2s ease;
+    }
+    .note:hover .del { opacity: 1; }
+    .note-top .del:hover { color: #f87171; }
+
+    .note-body {
+      color: var(--fg);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--fg-muted);
+      font-size: 0.92rem;
+      padding: 1.5rem 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .note { animation: none; }
+      .btn:hover, .send:hover, .mood:hover { transform: none; }
+    }
   </style>
 </head>
 <body>
@@ -176,12 +351,228 @@
     </div>
   </main>
 
+  <section class="wall" aria-labelledby="wall-title">
+    <div class="wall-head">
+      <h2 id="wall-title">The Thought Wall 💭</h2>
+      <p>Stuck on a problem? Got an idea? Drop it below and pin it to the wall.</p>
+    </div>
+
+    <form class="composer" id="composer" autocomplete="off">
+      <!-- Honeypot: hidden from humans, catches bots. -->
+      <input type="text" name="website" id="website" tabindex="-1" autocomplete="off"
+             aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;" />
+      <textarea
+        id="thought"
+        maxlength="280"
+        placeholder="What's on your mind? A bug, a big idea, or just hi 👋"
+        aria-label="Your thought or problem"></textarea>
+
+      <div class="composer-row">
+        <div class="moods" role="group" aria-label="Pick a mood">
+          <button type="button" class="mood" data-mood="💡" aria-pressed="false" title="Idea">💡</button>
+          <button type="button" class="mood" data-mood="🐛" aria-pressed="false" title="Bug / problem">🐛</button>
+          <button type="button" class="mood" data-mood="🚀" aria-pressed="false" title="Excited">🚀</button>
+          <button type="button" class="mood" data-mood="🤔" aria-pressed="false" title="Curious">🤔</button>
+          <button type="button" class="mood" data-mood="🔥" aria-pressed="false" title="Hot take">🔥</button>
+        </div>
+        <span class="spacer"></span>
+        <span class="count"><span id="count">280</span> left</span>
+        <button type="submit" class="send" id="send" disabled>Pin it</button>
+      </div>
+      <div id="turnstile" style="margin-top:0.75rem;"></div>
+    </form>
+
+    <p class="hint">
+      Pinned notes live only in your browser 🔒 — want it to actually reach us?
+      <a id="mailLink" href="mailto:hello@absolutedevs.in">Send it as an email instead.</a>
+    </p>
+
+    <ul class="notes" id="notes" aria-live="polite"></ul>
+  </section>
+
   <footer>
     &copy; <span id="year"></span> Absolute Devs. All rights reserved.
   </footer>
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
+
+    (function () {
+      var KEY = "ad_thoughts_v1";
+      var MAX = 280;
+
+      // Paste your Cloudflare Turnstile site key here to enable the bot check.
+      // Leave empty to disable it (server also skips it until TURNSTILE_SECRET is set).
+      var TURNSTILE_SITE_KEY = "";
+      var turnstileToken = "";
+
+      if (TURNSTILE_SITE_KEY) {
+        window.onTurnstileOk = function (t) { turnstileToken = t; };
+        window.onTurnstileExpired = function () { turnstileToken = ""; };
+        var box = document.getElementById("turnstile");
+        box.setAttribute("data-sitekey", TURNSTILE_SITE_KEY);
+        box.setAttribute("data-callback", "onTurnstileOk");
+        box.setAttribute("data-expired-callback", "onTurnstileExpired");
+        box.className = "cf-turnstile";
+        var s = document.createElement("script");
+        s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+        s.async = true;
+        s.defer = true;
+        document.head.appendChild(s);
+      }
+
+      var form = document.getElementById("composer");
+      var input = document.getElementById("thought");
+      var send = document.getElementById("send");
+      var count = document.getElementById("count");
+      var list = document.getElementById("notes");
+      var moodBtns = Array.prototype.slice.call(document.querySelectorAll(".mood"));
+      var mailLink = document.getElementById("mailLink");
+      var mood = "💭";
+
+      function load() {
+        try { return JSON.parse(localStorage.getItem(KEY)) || []; }
+        catch (e) { return []; }
+      }
+      function save(notes) {
+        try { localStorage.setItem(KEY, JSON.stringify(notes)); } catch (e) {}
+      }
+
+      function timeAgo(ts) {
+        var s = Math.floor((Date.now() - ts) / 1000);
+        if (s < 60) return "just now";
+        var m = Math.floor(s / 60);
+        if (m < 60) return m + "m ago";
+        var h = Math.floor(m / 60);
+        if (h < 24) return h + "h ago";
+        var d = Math.floor(h / 24);
+        return d + "d ago";
+      }
+
+      function esc(str) {
+        var div = document.createElement("div");
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      function render() {
+        var notes = load();
+        list.innerHTML = "";
+        if (!notes.length) {
+          var li = document.createElement("li");
+          li.className = "empty";
+          li.textContent = "No notes pinned yet — be the first ✨";
+          list.appendChild(li);
+          return;
+        }
+        notes.forEach(function (n) {
+          var li = document.createElement("li");
+          li.className = "note";
+          li.innerHTML =
+            '<div class="note-top">' +
+              '<span class="emoji">' + esc(n.mood) + '</span>' +
+              '<time>' + timeAgo(n.ts) + '</time>' +
+              '<button class="del" type="button" aria-label="Remove note" data-id="' + n.id + '">✕</button>' +
+            '</div>' +
+            '<div class="note-body">' + esc(n.text) + '</div>';
+          list.appendChild(li);
+        });
+      }
+
+      function updateCount() {
+        var len = input.value.length;
+        count.textContent = MAX - len;
+        send.disabled = input.value.trim().length === 0;
+      }
+
+      input.addEventListener("input", function () {
+        updateCount();
+        var t = encodeURIComponent(input.value.trim());
+        mailLink.href = "mailto:hello@absolutedevs.in?subject=" +
+          encodeURIComponent("A thought from the wall " + mood) +
+          (t ? "&body=" + t : "");
+      });
+
+      moodBtns.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var already = btn.getAttribute("aria-pressed") === "true";
+          moodBtns.forEach(function (b) { b.setAttribute("aria-pressed", "false"); });
+          if (already) {
+            mood = "💭";
+          } else {
+            btn.setAttribute("aria-pressed", "true");
+            mood = btn.dataset.mood;
+          }
+        });
+      });
+
+      var honeypot = document.getElementById("website");
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var text = input.value.trim();
+        if (!text) return;
+        var chosenMood = mood;
+
+        // Pin locally right away (optimistic + offline copy).
+        var notes = load();
+        notes.unshift({ id: Date.now() + "" + Math.floor(Math.random() * 1000), text: text, mood: chosenMood, ts: Date.now() });
+        save(notes);
+        input.value = "";
+        mood = "💭";
+        moodBtns.forEach(function (b) { b.setAttribute("aria-pressed", "false"); });
+        updateCount();
+        render();
+        celebrate();
+
+        // Try to deliver it to us. Fails silently if the endpoint isn't live yet —
+        // the note is already safely pinned in the browser.
+        try {
+          fetch("/api/thought", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ text: text, mood: chosenMood, website: honeypot.value, turnstile: turnstileToken }),
+          }).then(function () {
+            if (window.turnstile && TURNSTILE_SITE_KEY) window.turnstile.reset();
+            turnstileToken = "";
+          }).catch(function () {});
+        } catch (err) {}
+      });
+
+      list.addEventListener("click", function (e) {
+        var btn = e.target.closest(".del");
+        if (!btn) return;
+        var id = btn.dataset.id;
+        save(load().filter(function (n) { return n.id !== id; }));
+        render();
+      });
+
+      // Little confetti burst for fun
+      function celebrate() {
+        if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        var emojis = ["✨", "🎉", "💫", "⭐", "🌟"];
+        for (var i = 0; i < 14; i++) {
+          (function (i) {
+            var s = document.createElement("span");
+            s.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            s.style.cssText =
+              "position:fixed;left:" + (45 + Math.random() * 10) + "%;top:60%;" +
+              "font-size:" + (14 + Math.random() * 14) + "px;pointer-events:none;z-index:99;" +
+              "transition:transform 1s ease-out, opacity 1s ease-out;transform:translate(0,0);opacity:1;";
+            document.body.appendChild(s);
+            requestAnimationFrame(function () {
+              s.style.transform = "translate(" + (Math.random() * 300 - 150) + "px," +
+                (-150 - Math.random() * 200) + "px) rotate(" + (Math.random() * 360) + "deg)";
+              s.style.opacity = "0";
+            });
+            setTimeout(function () { s.remove(); }, 1100);
+          })(i);
+        }
+      }
+
+      updateCount();
+      render();
+    })();
   </script>
 </body>
 </html>
