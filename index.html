@@ -356,7 +356,8 @@
 
       // Paste your Cloudflare Turnstile site key here to enable the bot check.
       // Leave empty to disable it (server also skips it until TURNSTILE_SECRET is set).
-      var TURNSTILE_SITE_KEY = "0x4AAAAAAD1uZGTP9-JckX78";
+      // Disabled: quota abuse is handled by the server-side daily/IP rate caps.
+      var TURNSTILE_SITE_KEY = "";
       var turnstileToken = "";
 
       if (TURNSTILE_SITE_KEY) {

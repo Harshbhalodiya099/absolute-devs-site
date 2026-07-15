@@ -19,9 +19,10 @@ const MAX_LEN = 600;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Per-IP limit and global daily cap (protects your Resend quota).
+// Resend's free tier allows 100 emails/day — keep the global cap safely under it.
 const IP_LIMIT = 5;              // submissions per IP...
 const IP_WINDOW_SECONDS = 600;   // ...per 10 minutes
-const GLOBAL_DAILY_LIMIT = 300;  // total submissions per day across everyone
+const GLOBAL_DAILY_LIMIT = 90;   // total submissions per day across everyone
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
