@@ -1,5 +1,5 @@
 // Cloudflare Pages Function — POST /api/thought
-// Sends a Thought Wall submission as an email via Resend, with abuse protection.
+// Emails a "problem worth solving" submission via Resend, with abuse protection.
 //
 // Environment variables (Cloudflare Pages → Settings → Environment variables):
 //   RESEND_API_KEY     Resend API key (secret) — required
@@ -8,15 +8,15 @@
 //   TURNSTILE_SECRET   Cloudflare Turnstile secret key — enables bot verification
 //
 // KV binding (Cloudflare Pages → Settings → Functions → KV namespace bindings):
-//   RATE_LIMIT         a KV namespace — enables per-IP + global rate limiting
+//   RATE_LIMIT_KV      a KV namespace — enables per-IP + global rate limiting
 //
 // Turnstile and rate limiting each activate only when their config is present,
 // so nothing breaks before you've set them up — but turn BOTH on before going
 // public. The email itself is injection-safe: from/to are server-side, the
 // subject only uses a whitelisted emoji, and the body is HTML-escaped.
 
-const MAX_LEN = 280;
-const MOODS = ["💭", "💡", "🐛", "🚀", "🤔", "🔥"];
+const MAX_LEN = 600;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Per-IP limit and global daily cap (protects your Resend quota).
 const IP_LIMIT = 5;              // submissions per IP...
@@ -103,22 +103,28 @@ export async function onRequestPost({ request, env }) {
     }
   }
 
-  // 3) Rate limiting (active when the RATE_LIMIT KV namespace is bound).
-  if (env.RATE_LIMIT) {
-    const rl = await checkRateLimit(env.RATE_LIMIT, ip);
+  // 3) Rate limiting (active when the RATE_LIMIT_KV namespace is bound).
+  if (env.RATE_LIMIT_KV) {
+    const rl = await checkRateLimit(env.RATE_LIMIT_KV, ip);
     if (!rl.ok) return json({ ok: false, error: rl.reason }, 429);
   }
 
   // 4) Validation.
   const text = (body.text || "").toString().trim();
-  const mood = MOODS.includes(body.mood) ? body.mood : "💭";
-  if (!text) return json({ ok: false, error: "Say something first 🙂" }, 400);
+  if (!text) return json({ ok: false, error: "Describe the problem first 🙂" }, 400);
   if (text.length > MAX_LEN) {
     return json({ ok: false, error: `Keep it under ${MAX_LEN} characters.` }, 400);
   }
 
+  // Optional reply address — only kept if it actually looks like an email.
+  const rawEmail = (body.email || "").toString().trim().slice(0, 254);
+  const replyTo = EMAIL_RE.test(rawEmail) ? rawEmail : "";
+  const contactLine = replyTo
+    ? `Reply to: ${esc(replyTo)}`
+    : "No email provided — no way to reply.";
+
   const to = env.MAIL_TO || "hello@absolutedevs.in";
-  const from = env.MAIL_FROM || "Thought Wall <onboarding@resend.dev>";
+  const from = env.MAIL_FROM || "Absolute Devs <onboarding@resend.dev>";
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -129,15 +135,16 @@ export async function onRequestPost({ request, env }) {
     body: JSON.stringify({
       from,
       to,
-      subject: `Thought Wall ${mood} — new note`,
+      ...(replyTo ? { reply_to: replyTo } : {}),
+      subject: "New problem from the site",
       html:
         `<div style="font-family:system-ui,sans-serif;line-height:1.6">` +
-        `<p style="font-size:1.5rem;margin:0 0 .5rem">${mood}</p>` +
-        `<p style="white-space:pre-wrap;margin:0">${esc(text)}</p>` +
+        `<p style="white-space:pre-wrap;margin:0 0 1rem;font-size:1.05rem">${esc(text)}</p>` +
+        `<p style="margin:0;color:#374151">${contactLine}</p>` +
         `<hr style="border:none;border-top:1px solid #e5e7eb;margin:1.25rem 0">` +
-        `<p style="color:#6b7280;font-size:.85rem;margin:0">Sent from the Absolute Devs Thought Wall · ${esc(ip)}</p>` +
+        `<p style="color:#6b7280;font-size:.85rem;margin:0">Sent from the Absolute Devs site · ${esc(ip)}</p>` +
         `</div>`,
-      text: `${mood}\n\n${text}\n\n— Absolute Devs Thought Wall (${ip})`,
+      text: `${text}\n\n${replyTo ? `Reply to: ${replyTo}` : "No email provided."}\n\n— Absolute Devs site (${ip})`,
     }),
   });
 

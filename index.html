@@ -217,27 +217,19 @@
       border-top: 1px solid var(--border);
     }
 
-    .moods { display: flex; gap: 0.35rem; }
-
-    .mood {
-      font-size: 1.15rem;
-      line-height: 1;
+    .field {
+      width: 100%;
+      margin-top: 0.75rem;
       background: transparent;
-      border: 1px solid transparent;
-      border-radius: 10px;
-      padding: 0.35rem 0.45rem;
-      cursor: pointer;
-      filter: grayscale(0.7);
-      opacity: 0.7;
-      transition: transform 0.12s ease, filter 0.2s ease, opacity 0.2s ease, border-color 0.2s ease;
+      border: none;
+      border-top: 1px solid var(--border);
+      outline: none;
+      color: var(--fg);
+      font: inherit;
+      font-size: 0.95rem;
+      padding: 0.75rem 0 0;
     }
-    .mood:hover { transform: translateY(-2px) scale(1.1); }
-    .mood[aria-pressed="true"] {
-      filter: none;
-      opacity: 1;
-      border-color: var(--border);
-      background: rgba(255, 255, 255, 0.04);
-    }
+    .field::placeholder { color: var(--fg-muted); }
 
     .composer .spacer { flex: 1; }
 
@@ -272,66 +264,28 @@
     .hint a { color: var(--accent); text-decoration: none; }
     .hint a:hover { text-decoration: underline; }
 
-    .notes {
-      list-style: none;
-      margin-top: 1.75rem;
-      display: grid;
-      gap: 0.85rem;
-    }
-
-    .note {
+    /* Thank-you state shown after a problem is sent. */
+    .thanks {
+      text-align: center;
+      padding: 2rem 1.25rem;
       background: var(--bg-soft);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 0.95rem 1.1rem;
-      animation: pop 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      border-radius: 16px;
     }
+    .thanks .mark { font-size: 2rem; line-height: 1; }
+    .thanks h3 { margin-top: 0.6rem; font-size: 1.2rem; font-weight: 700; }
+    .thanks p { margin-top: 0.4rem; color: var(--fg-muted); font-size: 0.95rem; }
 
-    @keyframes pop {
-      from { opacity: 0; transform: translateY(8px) scale(0.98); }
-      to   { opacity: 1; transform: none; }
-    }
-
-    .note-top {
-      display: flex;
-      align-items: center;
-      gap: 0.55rem;
-      margin-bottom: 0.4rem;
-    }
-    .note-top .emoji { font-size: 1.1rem; line-height: 1; }
-    .note-top time { font-size: 0.75rem; color: var(--fg-muted); }
-    .note-top .del {
-      margin-left: auto;
-      background: transparent;
-      border: none;
-      color: var(--fg-muted);
-      cursor: pointer;
-      font-size: 0.85rem;
-      line-height: 1;
-      padding: 0.2rem;
-      border-radius: 6px;
-      opacity: 0;
-      transition: opacity 0.2s ease, color 0.2s ease;
-    }
-    .note:hover .del { opacity: 1; }
-    .note-top .del:hover { color: #f87171; }
-
-    .note-body {
-      color: var(--fg);
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .empty {
+    .status {
       text-align: center;
-      color: var(--fg-muted);
-      font-size: 0.92rem;
-      padding: 1.5rem 0;
+      font-size: 0.85rem;
+      margin-top: 0.75rem;
+      min-height: 1.2em;
     }
+    .status.error { color: #f87171; }
 
     @media (prefers-reduced-motion: reduce) {
-      .note { animation: none; }
-      .btn:hover, .send:hover, .mood:hover { transform: none; }
+      .btn:hover, .send:hover { transform: none; }
     }
   </style>
 </head>
@@ -347,14 +301,13 @@
 
     <div class="actions">
       <a class="btn btn-primary" href="mailto:hello@absolutedevs.in">Get in touch</a>
-      <a class="btn btn-ghost" href="https://github.com/Harshbhalodiya099" target="_blank" rel="noopener">GitHub &rarr;</a>
     </div>
   </main>
 
   <section class="wall" aria-labelledby="wall-title">
     <div class="wall-head">
-      <h2 id="wall-title">The Thought Wall 💭</h2>
-      <p>Stuck on a problem? Got an idea? Drop it below and pin it to the wall.</p>
+      <h2 id="wall-title">Got a problem worth solving?</h2>
+      <p>Tell us about a real, nagging problem — a clunky workflow, a manual task eating your time, something that should exist but doesn't. If we can build the fix, we'll reach out.</p>
     </div>
 
     <form class="composer" id="composer" autocomplete="off">
@@ -363,31 +316,32 @@
              aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;" />
       <textarea
         id="thought"
-        maxlength="280"
-        placeholder="What's on your mind? A bug, a big idea, or just hi 👋"
-        aria-label="Your thought or problem"></textarea>
+        maxlength="600"
+        placeholder="What's broken, slow, or missing? The more concrete, the better."
+        aria-label="Describe the problem"></textarea>
+
+      <input type="email" id="email" class="field" placeholder="Your email — so we can get back to you" aria-label="Your email" />
 
       <div class="composer-row">
-        <div class="moods" role="group" aria-label="Pick a mood">
-          <button type="button" class="mood" data-mood="💡" aria-pressed="false" title="Idea">💡</button>
-          <button type="button" class="mood" data-mood="🐛" aria-pressed="false" title="Bug / problem">🐛</button>
-          <button type="button" class="mood" data-mood="🚀" aria-pressed="false" title="Excited">🚀</button>
-          <button type="button" class="mood" data-mood="🤔" aria-pressed="false" title="Curious">🤔</button>
-          <button type="button" class="mood" data-mood="🔥" aria-pressed="false" title="Hot take">🔥</button>
-        </div>
+        <span class="count"><span id="count">600</span> left</span>
         <span class="spacer"></span>
-        <span class="count"><span id="count">280</span> left</span>
-        <button type="submit" class="send" id="send" disabled>Pin it</button>
+        <button type="submit" class="send" id="send" disabled>Send it over</button>
       </div>
       <div id="turnstile" style="margin-top:0.75rem;"></div>
     </form>
 
+    <p class="status" id="status" aria-live="polite"></p>
+
     <p class="hint">
-      Pinned notes live only in your browser 🔒 — want it to actually reach us?
-      <a id="mailLink" href="mailto:hello@absolutedevs.in">Send it as an email instead.</a>
+      We read every one. No spam, no newsletter — just us, actually reading. 🔒
     </p>
 
-    <ul class="notes" id="notes" aria-live="polite"></ul>
+    <!-- Swapped in after a successful send. -->
+    <div class="thanks" id="thanks" hidden>
+      <div class="mark">✅</div>
+      <h3>Got it — thank you.</h3>
+      <p>Your problem landed in our inbox. If it's a fit, we'll be in touch.</p>
+    </div>
   </section>
 
   <footer>
@@ -398,12 +352,11 @@
     document.getElementById("year").textContent = new Date().getFullYear();
 
     (function () {
-      var KEY = "ad_thoughts_v1";
-      var MAX = 280;
+      var MAX = 600;
 
       // Paste your Cloudflare Turnstile site key here to enable the bot check.
       // Leave empty to disable it (server also skips it until TURNSTILE_SECRET is set).
-      var TURNSTILE_SITE_KEY = "";
+      var TURNSTILE_SITE_KEY = "0x4AAAAAAD1uZGTP9-JckX78";
       var turnstileToken = "";
 
       if (TURNSTILE_SITE_KEY) {
@@ -423,155 +376,63 @@
 
       var form = document.getElementById("composer");
       var input = document.getElementById("thought");
+      var email = document.getElementById("email");
       var send = document.getElementById("send");
       var count = document.getElementById("count");
-      var list = document.getElementById("notes");
-      var moodBtns = Array.prototype.slice.call(document.querySelectorAll(".mood"));
-      var mailLink = document.getElementById("mailLink");
-      var mood = "💭";
-
-      function load() {
-        try { return JSON.parse(localStorage.getItem(KEY)) || []; }
-        catch (e) { return []; }
-      }
-      function save(notes) {
-        try { localStorage.setItem(KEY, JSON.stringify(notes)); } catch (e) {}
-      }
-
-      function timeAgo(ts) {
-        var s = Math.floor((Date.now() - ts) / 1000);
-        if (s < 60) return "just now";
-        var m = Math.floor(s / 60);
-        if (m < 60) return m + "m ago";
-        var h = Math.floor(m / 60);
-        if (h < 24) return h + "h ago";
-        var d = Math.floor(h / 24);
-        return d + "d ago";
-      }
-
-      function esc(str) {
-        var div = document.createElement("div");
-        div.textContent = str;
-        return div.innerHTML;
-      }
-
-      function render() {
-        var notes = load();
-        list.innerHTML = "";
-        if (!notes.length) {
-          var li = document.createElement("li");
-          li.className = "empty";
-          li.textContent = "No notes pinned yet — be the first ✨";
-          list.appendChild(li);
-          return;
-        }
-        notes.forEach(function (n) {
-          var li = document.createElement("li");
-          li.className = "note";
-          li.innerHTML =
-            '<div class="note-top">' +
-              '<span class="emoji">' + esc(n.mood) + '</span>' +
-              '<time>' + timeAgo(n.ts) + '</time>' +
-              '<button class="del" type="button" aria-label="Remove note" data-id="' + n.id + '">✕</button>' +
-            '</div>' +
-            '<div class="note-body">' + esc(n.text) + '</div>';
-          list.appendChild(li);
-        });
-      }
+      var status = document.getElementById("status");
+      var thanks = document.getElementById("thanks");
+      var honeypot = document.getElementById("website");
 
       function updateCount() {
-        var len = input.value.length;
-        count.textContent = MAX - len;
+        count.textContent = MAX - input.value.length;
         send.disabled = input.value.trim().length === 0;
       }
 
-      input.addEventListener("input", function () {
-        updateCount();
-        var t = encodeURIComponent(input.value.trim());
-        mailLink.href = "mailto:hello@absolutedevs.in?subject=" +
-          encodeURIComponent("A thought from the wall " + mood) +
-          (t ? "&body=" + t : "");
-      });
+      function setStatus(msg, isError) {
+        status.textContent = msg || "";
+        status.className = "status" + (isError ? " error" : "");
+      }
 
-      moodBtns.forEach(function (btn) {
-        btn.addEventListener("click", function () {
-          var already = btn.getAttribute("aria-pressed") === "true";
-          moodBtns.forEach(function (b) { b.setAttribute("aria-pressed", "false"); });
-          if (already) {
-            mood = "💭";
-          } else {
-            btn.setAttribute("aria-pressed", "true");
-            mood = btn.dataset.mood;
-          }
-        });
-      });
-
-      var honeypot = document.getElementById("website");
+      input.addEventListener("input", updateCount);
 
       form.addEventListener("submit", function (e) {
         e.preventDefault();
         var text = input.value.trim();
         if (!text) return;
-        var chosenMood = mood;
+        var contact = email.value.trim();
 
-        // Pin locally right away (optimistic + offline copy).
-        var notes = load();
-        notes.unshift({ id: Date.now() + "" + Math.floor(Math.random() * 1000), text: text, mood: chosenMood, ts: Date.now() });
-        save(notes);
-        input.value = "";
-        mood = "💭";
-        moodBtns.forEach(function (b) { b.setAttribute("aria-pressed", "false"); });
-        updateCount();
-        render();
-        celebrate();
+        send.disabled = true;
+        setStatus("Sending…", false);
 
-        // Try to deliver it to us. Fails silently if the endpoint isn't live yet —
-        // the note is already safely pinned in the browser.
-        try {
-          fetch("/api/thought", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ text: text, mood: chosenMood, website: honeypot.value, turnstile: turnstileToken }),
-          }).then(function () {
-            if (window.turnstile && TURNSTILE_SITE_KEY) window.turnstile.reset();
-            turnstileToken = "";
-          }).catch(function () {});
-        } catch (err) {}
-      });
-
-      list.addEventListener("click", function (e) {
-        var btn = e.target.closest(".del");
-        if (!btn) return;
-        var id = btn.dataset.id;
-        save(load().filter(function (n) { return n.id !== id; }));
-        render();
-      });
-
-      // Little confetti burst for fun
-      function celebrate() {
-        if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-        var emojis = ["✨", "🎉", "💫", "⭐", "🌟"];
-        for (var i = 0; i < 14; i++) {
-          (function (i) {
-            var s = document.createElement("span");
-            s.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-            s.style.cssText =
-              "position:fixed;left:" + (45 + Math.random() * 10) + "%;top:60%;" +
-              "font-size:" + (14 + Math.random() * 14) + "px;pointer-events:none;z-index:99;" +
-              "transition:transform 1s ease-out, opacity 1s ease-out;transform:translate(0,0);opacity:1;";
-            document.body.appendChild(s);
-            requestAnimationFrame(function () {
-              s.style.transform = "translate(" + (Math.random() * 300 - 150) + "px," +
-                (-150 - Math.random() * 200) + "px) rotate(" + (Math.random() * 360) + "deg)";
-              s.style.opacity = "0";
+        fetch("/api/thought", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ text: text, email: contact, website: honeypot.value, turnstile: turnstileToken }),
+        })
+          .then(function (res) {
+            return res.json().catch(function () { return {}; }).then(function (data) {
+              return { ok: res.ok, data: data };
             });
-            setTimeout(function () { s.remove(); }, 1100);
-          })(i);
-        }
-      }
+          })
+          .then(function (r) {
+            if (r.ok && r.data && r.data.ok) {
+              form.hidden = true;
+              status.hidden = true;
+              thanks.hidden = false;
+            } else {
+              setStatus((r.data && r.data.error) || "Couldn't send right now — please try again.", true);
+              send.disabled = false;
+              if (window.turnstile && TURNSTILE_SITE_KEY) window.turnstile.reset();
+              turnstileToken = "";
+            }
+          })
+          .catch(function () {
+            setStatus("Network hiccup — please try again.", true);
+            send.disabled = false;
+          });
+      });
 
       updateCount();
-      render();
     })();
   </script>
 </body>
