@@ -1,3 +1,10 @@
 # OS / editor cruft
 .DS_Store
 Thumbs.db
+
+# Dependencies & build caches
+node_modules/
+*.tsbuildinfo
+
+# Cloudflare local state
+.wrangler/
