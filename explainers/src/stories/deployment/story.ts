@@ -10,12 +10,16 @@ import {
   all,
   appear,
   below,
+  crash,
   defineStory,
+  definePreset,
   dim,
   draw,
+  enter,
   fadeTo,
   flash,
   glowOn,
+  grid,
   node,
   pulse,
   region,
@@ -23,10 +27,11 @@ import {
   scene,
   seq,
   shake,
+  spot,
   stagger,
   toggle,
   token,
-  travel,
+  v,
   wait,
 } from "../../engine";
 import { meta } from "./meta";
@@ -50,30 +55,22 @@ const bareVm = scene({
   ],
   setup: (s) => {
     const { laptop, vm, users } = s.cast({
-      laptop: node({
-        x: 150,
-        y: 260,
-        glyph: "laptop",
+      laptop: v.browser({
+        ...spot("left"),
         label: "Your laptop",
         sub: "code that works",
-        accent: "blue",
         note: "The one machine where your app is guaranteed to run — because it's the machine you built it on.",
       }),
-      vm: node({
+      vm: v.server({
         x: 510,
         y: 260,
         w: 176,
-        glyph: "server",
         label: "Virtual machine",
         sub: "rented by the hour",
-        accent: "cyan",
         note: "A sliver of a real server, handed to you as a whole computer: an IP address and a root login. You own everything above the bare metal.",
       }),
-      users: node({
-        x: 820,
-        y: 260,
-        glyph: "user",
-        label: "Users",
+      users: v.users({
+        ...spot("right"),
         sub: "the whole world",
         accent: "violet",
         note: "They reach your app by its public IP or domain name — as long as the process behind it is alive.",
@@ -82,15 +79,12 @@ const bareVm = scene({
 
     const setup = s.connect(laptop, vm, { bow: 60, dashed: true });
     const serve = s.connect(vm, users, { bow: -40 });
-    const push = s.packet(setup, { color: "blue", label: "ssh + scp" });
-    const req = s.packet(s.route(users, vm, { bow: -40 }), { color: "violet", label: "GET /" });
-    const res = s.packet(s.route(vm, users, { bow: 40 }), { color: "green", label: "200 OK" });
 
-    const { install, copy, run, crash } = s.cast({
+    const { install, copy, run, crashTok } = s.cast({
       install: token({ x: 510, y: 150, text: "install runtime", accent: "cyan" }),
       copy: token({ x: 510, y: 118, text: "copy code", accent: "cyan" }),
       run: token({ x: 510, y: 372, text: "open port :443", accent: "cyan" }),
-      crash: token({ ...below(vm, 96), text: "crash → still down", accent: "rose" }),
+      crashTok: token({ ...below(vm, 96), text: "crash → still down", accent: "rose" }),
     });
 
     s.step("It all starts on the one computer where your code is certain to run: the machine you wrote it on.", [
@@ -101,7 +95,7 @@ const bareVm = scene({
     s.step("So you rent a virtual machine, SSH in, and set it up by hand — runtime, code, an open port.", [
       appear(vm),
       draw(setup, 0.7),
-      travel(push, 1.3),
+      setup.send({ label: "ssh + scp", dur: 1.3 }),
       flash(vm),
       stagger(0.18, appear(copy), appear(install), appear(run)),
       all(fadeTo(copy, 0.45), fadeTo(install, 0.45), fadeTo(run, 0.45)),
@@ -110,13 +104,13 @@ const bareVm = scene({
     s.step("Point a domain at its address and you've genuinely shipped — the world hits it and your app answers.", [
       appear(users),
       draw(serve, 0.6),
-      travel(req, 1.1),
-      all(pulse(vm, 1.8), seq(wait(0.4), travel(res, 1.1), glowOn(users))),
+      serve.reply({ color: "violet", label: "GET /", dur: 1.1 }),
+      all(pulse(vm, 1.8), seq(wait(0.4), serve.send({ color: "green", label: "200 OK", dur: 1.1 }), glowOn(users))),
     ]);
 
     s.step(
       "But you own all of it — patches, configuration drift, and the crash at 3 A.M. that stays down until you wake up.",
-      [appear(crash), all(shake(vm), dim(vm), pulse(crash, 2.2)), wait(1.4)],
+      [appear(crashTok), all(shake(vm), dim(vm), pulse(crashTok, 2.2)), wait(1.4)],
       { hold: 1.0 },
     );
   },
@@ -141,13 +135,10 @@ const dockerImage = scene({
   ],
   setup: (s) => {
     const { laptop, image, registry, server, teammate } = s.cast({
-      laptop: node({
-        x: 150,
-        y: 260,
-        glyph: "laptop",
+      laptop: v.browser({
+        ...spot("left"),
         label: "Build machine",
         sub: "docker build",
-        accent: "blue",
         note: "Reads a Dockerfile — a short recipe — and produces an image. Run once, not on every deploy.",
       }),
       image: node({
@@ -170,19 +161,16 @@ const dockerImage = scene({
         accent: "violet",
         note: "A shared store for images. Push once; pull anywhere. The image's digest guarantees you get the exact same bits.",
       }),
-      server: node({
+      server: v.server({
         x: 790,
         y: 150,
-        glyph: "server",
         label: "Prod server",
         sub: "docker run",
-        accent: "cyan",
         note: "Any host with a container runtime. It doesn't need your language installed — the image already carries it.",
       }),
-      teammate: node({
+      teammate: v.browser({
         x: 790,
         y: 390,
-        glyph: "laptop",
         label: "CI runner",
         sub: "same image",
         accent: "green",
@@ -192,12 +180,7 @@ const dockerImage = scene({
 
     const build = s.connect(laptop, image, { bow: -20, dashed: true });
     const store = s.connect(image, registry, { bow: 0, dashed: true });
-    const pullA = s.connect(registry, server, { bow: -30, dashed: true });
-    const pullB = s.connect(registry, teammate, { bow: 30, dashed: true });
-    const pBuild = s.packet(build, { color: "amber", label: "build" });
-    const pPush = s.packet(store, { color: "violet", label: "push" });
-    const pPullA = s.packet(pullA, { color: "cyan", label: "pull" });
-    const pPullB = s.packet(pullB, { color: "green", label: "pull" });
+    const pulls = s.fanout(registry, [server, teammate], { dashed: true, bowSpread: -60 });
 
     const { same } = s.cast({
       same: token({ x: 790, y: 270, text: "identical bits", accent: "green" }),
@@ -211,23 +194,23 @@ const dockerImage = scene({
     s.step("`docker build` freezes your code, its libraries, and a slice of the OS into one immutable image.", [
       appear(image),
       draw(build, 0.6),
-      travel(pBuild, 1.1),
+      build.send({ color: "amber", label: "build", dur: 1.1 }),
       all(flash(image), pulse(image, 1.8)),
     ]);
 
     s.step("You push that image to a registry once — a single, content-addressed artifact anyone can fetch.", [
       appear(registry),
       draw(store, 0.6),
-      travel(pPush, 1.0),
+      store.send({ color: "violet", label: "push", dur: 1.0 }),
       flash(registry),
     ]);
 
     s.step(
       "Then any host pulls the exact same image and runs it — server, laptop, CI — with no more 'works on my machine'.",
       [
-        stagger(0.2, appear(server), appear(teammate)),
-        stagger(0.2, draw(pullA, 0.5), draw(pullB, 0.5)),
-        all(travel(pPullA, 1.1), seq(wait(0.3), travel(pPullB, 1.1))),
+        enter([server, teammate], 0.2),
+        pulls.draw({ gap: 0.2, dur: 0.5 }),
+        all(pulls.wires[0].send({ color: "cyan", label: "pull", dur: 1.1 }), seq(wait(0.3), pulls.wires[1].send({ color: "green", label: "pull", dur: 1.1 }))),
         all(glowOn(server), glowOn(teammate), appear(same)),
         wait(1.2),
       ],
@@ -264,46 +247,40 @@ const kubernetes = scene({
         accent: "amber",
         note: "The same immutable artifact from the last rung. Kubernetes runs copies of it — it doesn't care what's inside.",
       }),
-      deploy: node({
+      deploy: v.controller({
         x: 150,
         y: 360,
         w: 168,
-        glyph: "gear",
         label: "Deployment",
         sub: "desired: 5 replicas",
         accent: "cyan",
         note: "Your declared intent, stored in the cluster. A control loop compares it against reality without stopping.",
       }),
-      users: node({
+      users: v.users({
         x: 150,
         y: 240,
-        glyph: "user",
-        label: "Users",
         accent: "violet",
         note: "Traffic enters through a load balancer that spreads requests across whichever pods are currently healthy.",
       }),
     });
 
-    const cluster = s.add(
-      region({ x: 620, y: 265, w: 440, h: 370, title: "Cluster · nodes", accent: "ink" }),
-    );
+    const cluster = s.add(region({ x: 620, y: 265, w: 440, h: 370, title: "Cluster · nodes", accent: "ink" }));
 
-    const pod = (x: number, y: number) =>
-      node({ x, y, w: 96, h: 52, glyph: "box", label: "pod", accent: "green", note: "One running copy of your image." });
+    const slots = grid({ at: { x: 630, y: 262 }, cols: 3, rows: 2, gapX: 120, gapY: 175 });
+    const mini = (pt: { x: number; y: number }) =>
+      v.pod({ ...pt, w: 96, h: 52, note: "One running copy of your image." });
     const { p1, p2, p3, p4, p5, p6 } = s.cast({
-      p1: pod(510, 175),
-      p2: pod(630, 175),
-      p3: pod(750, 175),
-      p4: pod(560, 350),
-      p5: pod(700, 350),
-      p6: pod(750, 350),
+      p1: mini(slots[0]),
+      p2: mini(slots[1]),
+      p3: mini(slots[2]),
+      p4: mini(slots[3]),
+      p5: mini(slots[4]),
+      p6: mini(slots[5]),
     });
 
     const wImage = s.connect(image, deploy, { bow: 0, dashed: true });
     const wWish = s.connect(deploy, cluster, { bow: 30, dashed: true });
     const wTraffic = s.connect(users, cluster, { bow: -10 });
-    const wish = s.packet(wWish, { color: "cyan", label: "desired: 5" });
-    const req = s.packet(wTraffic, { color: "violet", label: "traffic" });
 
     s.step("Real systems aren't one container — they're many copies, on many machines, expected to recover on their own.", [
       appear(image),
@@ -314,30 +291,22 @@ const kubernetes = scene({
 
     s.step("You never launch them by hand. You hand Kubernetes a wish: five replicas of this image.", [
       draw(wWish, 0.6),
-      travel(wish, 1.1),
+      wWish.send({ color: "cyan", label: "desired: 5", dur: 1.1 }),
       appear(cluster),
-      stagger(0.14, appear(p1), appear(p2), appear(p3), appear(p4), appear(p5)),
+      enter([p1, p2, p3, p4, p5], 0.14),
       all(glowOn(p1), glowOn(p2), glowOn(p3), glowOn(p4), glowOn(p5)),
     ]);
 
     s.step("It schedules them across nodes and load-balances traffic in — you've stopped tending servers.", [
       appear(users),
       draw(wTraffic, 0.6),
-      travel(req, 1.2),
+      wTraffic.send({ color: "violet", label: "traffic", dur: 1.2 }),
       pulse(cluster, 1.8),
     ]);
 
     s.step(
       "A pod dies. The loop sees five wanted, four running — and fills the gap before anyone notices.",
-      [
-        all(shake(p3), fadeTo(p3, 0.06, 0.5)),
-        wait(0.4),
-        pulse(deploy, 2.0),
-        wait(0.3),
-        appear(p6),
-        glowOn(p6),
-        wait(1.2),
-      ],
+      [crash(p3, { remains: 0.06 }), pulse(deploy, 2.0), wait(0.3), appear(p6), glowOn(p6), wait(1.2)],
       { hold: 1.0 },
     );
   },
@@ -346,6 +315,17 @@ const kubernetes = scene({
 /* ============================================================
    Scene 4 — the fork: static SPA vs. stateful DB (interactive)
    ============================================================ */
+
+/** A CDN edge location — a story-local preset, defined once. */
+const edge = definePreset({
+  glyph: "cloud",
+  label: "Edge",
+  sub: "edge cache",
+  accent: "cyan",
+  w: 132,
+  h: 66,
+  note: "A CDN edge location. Holds a copy of the bundle so nearby users never touch your origin.",
+});
 
 const twoHomes = scene({
   id: "two-homes",
@@ -370,8 +350,7 @@ const twoHomes = scene({
     if (p.serving === "spa") {
       const { bundle } = s.cast({
         bundle: node({
-          x: 150,
-          y: 260,
+          ...spot("left"),
           w: 168,
           glyph: "doc",
           label: "Static bundle",
@@ -381,26 +360,23 @@ const twoHomes = scene({
         }),
       });
 
-      const edgeSpec = (x: number, y: number, label_: string) =>
-        node({ x, y, w: 132, h: 66, glyph: "cloud", label: label_, sub: "edge cache", accent: "cyan", note: "A CDN edge location. Holds a copy of the bundle so nearby users never touch your origin." });
-      const { e1, e2, e3, e4 } = s.cast({
-        e1: edgeSpec(520, 120, "Frankfurt"),
-        e2: edgeSpec(800, 190, "Mumbai"),
-        e3: edgeSpec(520, 410, "São Paulo"),
-        e4: edgeSpec(800, 380, "Tokyo"),
-      });
-
-      const { visitor, cost } = s.cast({
-        visitor: node({ x: 300, y: 430, glyph: "user", label: "A visitor", accent: "violet", note: "Served from the closest edge — not from your build machine, which may be a continent away." }),
+      const { e1, e2, e3, e4, visitor, cost } = s.cast({
+        e1: edge({ x: 520, y: 120, label: "Frankfurt" }),
+        e2: edge({ x: 800, y: 190, label: "Mumbai" }),
+        e3: edge({ x: 520, y: 410, label: "São Paulo" }),
+        e4: edge({ x: 800, y: 380, label: "Tokyo" }),
+        visitor: v.users({
+          x: 300,
+          y: 430,
+          label: "A visitor",
+          accent: "violet",
+          note: "Served from the closest edge — not from your build machine, which may be a continent away.",
+        }),
         cost: token({ x: 520, y: 265, text: "scales to millions · ~$0", accent: "green" }),
       });
 
-      const push1 = s.connect(bundle, e1, { bow: -20, dashed: true });
-      const push2 = s.connect(bundle, e2, { bow: -10, dashed: true });
-      const push3 = s.connect(bundle, e3, { bow: 20, dashed: true });
-      const push4 = s.connect(bundle, e4, { bow: 10, dashed: true });
+      const cdn = s.fanout(bundle, [e1, e2, e3, e4], { dashed: true });
       const serve = s.connect(visitor, e3, { bow: 20 });
-      const hit = s.packet(s.route(e3, visitor, { bow: -20 }), { color: "green", label: "12 ms" });
 
       s.step("A single-page app, once built, is just files — there's no server-side logic to run.", [
         appear(bundle),
@@ -408,14 +384,9 @@ const twoHomes = scene({
       ]);
 
       s.step("So you copy that bundle to a CDN: the same files cached at edge locations around the planet.", [
-        stagger(0.14, appear(e1), appear(e2), appear(e3), appear(e4)),
-        stagger(0.1, draw(push1, 0.5), draw(push2, 0.5), draw(push3, 0.5), draw(push4, 0.5)),
-        all(
-          travel(s.packet(push1, { color: "cyan" }), 1.0),
-          travel(s.packet(push2, { color: "cyan" }), 1.0),
-          travel(s.packet(push3, { color: "cyan" }), 1.0),
-          travel(s.packet(push4, { color: "cyan" }), 1.0),
-        ),
+        enter([e1, e2, e3, e4], 0.14),
+        cdn.draw({ gap: 0.1, dur: 0.5 }),
+        cdn.send({ color: "cyan", gap: 0, dur: 1.0 }),
       ]);
 
       s.step(
@@ -423,7 +394,7 @@ const twoHomes = scene({
         [
           appear(visitor),
           draw(serve, 0.5),
-          travel(hit, 0.9),
+          serve.reply({ color: "green", label: "12 ms", dur: 0.9 }),
           all(glowOn(visitor), pulse(e3, 1.8), appear(cost)),
           wait(1.2),
         ],
@@ -434,12 +405,16 @@ const twoHomes = scene({
 
     /* p.serving === "db" */
     const { app, primary, disk } = s.cast({
-      app: node({ x: 150, y: 260, glyph: "server", label: "Your app", sub: "reads + writes", accent: "cyan", note: "Every write in your whole system funnels down to one place." }),
-      primary: node({
+      app: v.server({
+        ...spot("left"),
+        label: "Your app",
+        sub: "reads + writes",
+        note: "Every write in your whole system funnels down to one place.",
+      }),
+      primary: v.database({
         x: 500,
         y: 200,
         w: 170,
-        glyph: "database",
         label: "Primary",
         sub: "source of truth",
         accent: "green",
@@ -458,24 +433,43 @@ const twoHomes = scene({
     });
 
     const { r1, r2, backup, warn } = s.cast({
-      r1: node({ x: 820, y: 130, w: 150, glyph: "database", label: "Read replica", accent: "cyan", note: "A near-copy that serves reads to spread load. It cannot accept writes — those still go to the primary." }),
-      r2: node({ x: 820, y: 290, w: 150, glyph: "database", label: "Read replica", accent: "cyan", note: "More replicas share read traffic, but none of them is the source of truth." }),
-      backup: node({ x: 820, y: 430, w: 150, glyph: "box", label: "Backups", accent: "violet", note: "Point-in-time copies. When the irreplaceable box fails, this is the only way back." }),
+      r1: v.database({
+        x: 820,
+        y: 130,
+        w: 150,
+        label: "Read replica",
+        accent: "cyan",
+        note: "A near-copy that serves reads to spread load. It cannot accept writes — those still go to the primary.",
+      }),
+      r2: v.database({
+        x: 820,
+        y: 290,
+        w: 150,
+        label: "Read replica",
+        accent: "cyan",
+        note: "More replicas share read traffic, but none of them is the source of truth.",
+      }),
+      backup: node({
+        x: 820,
+        y: 430,
+        w: 150,
+        glyph: "box",
+        label: "Backups",
+        accent: "violet",
+        note: "Point-in-time copies. When the irreplaceable box fails, this is the only way back.",
+      }),
       warn: token({ ...rightOf(app, 8), text: "can't scale to zero", accent: "rose" }),
     });
 
     const write = s.connect(app, primary, { bow: -20 });
     const persist = s.connect(primary, disk, { bow: 0 });
-    const rep1 = s.connect(primary, r1, { bow: -20, dashed: true });
-    const rep2 = s.connect(primary, r2, { bow: 0, dashed: true });
-    const bk = s.connect(primary, backup, { bow: 25, dashed: true });
-    const wReq = s.packet(write, { color: "cyan", label: "write" });
+    const guard = s.fanout(primary, [r1, r2, backup], { dashed: true, bowSpread: -45 });
 
     s.step("A database is the opposite of a static app: it's nothing but state, with one source of truth.", [
       appear(app),
       appear(primary),
       draw(write, 0.6),
-      travel(wReq, 1.0),
+      write.send({ color: "cyan", label: "write", dur: 1.0 }),
       all(flash(primary), pulse(primary, 1.8)),
     ]);
 
@@ -488,8 +482,8 @@ const twoHomes = scene({
     s.step(
       "Read replicas share the load and backups guard the data — but this box is precious: clone it carelessly and truth splits.",
       [
-        stagger(0.16, appear(r1), appear(r2), appear(backup)),
-        stagger(0.12, draw(rep1, 0.5), draw(rep2, 0.5), draw(bk, 0.5)),
+        enter([r1, r2, backup], 0.16),
+        guard.draw({ gap: 0.12, dur: 0.5 }),
         appear(warn),
         all(pulse(primary, 2.0), pulse(warn, 2.0)),
         wait(1.2),
@@ -507,5 +501,31 @@ export default defineStory({
   outro: [
     "So the ladder, top to bottom: a virtual machine gives you a whole computer and total control, at the price of assembling and babysitting it by hand. A Docker image trades that hand-built fragility for a reproducible artifact — the same bits everywhere — but still needs a host to run on. Kubernetes runs those images across a fleet and heals them automatically, at the price of real operational complexity. Each rung buys you something and charges you for it; you climb only as far as your problem actually needs.",
     "And the fork matters as much as the ladder. Before you reach for any of it, ask what you're deploying. A stateless thing — a single-page app, static assets, anything that just answers with the same files — wants a CDN, where scaling is free and there's nothing to heal. A stateful thing — a database, a queue, anything that must remember — wants a managed, backed-up home built around a single source of truth. Most real systems are several of these at once: a static frontend on the edge, stateless services in containers, and a stateful database guarded like treasure. Good deployment is mostly just putting each piece in the home that fits it.",
+  ],
+  references: [
+    {
+      kind: "article",
+      title: "How Containers Work (Julia Evans)",
+      url: "https://wizardzines.com/zines/containers/",
+      note: "A zine that demystifies the namespaces and cgroups hiding behind the shipping-container metaphor.",
+    },
+    {
+      kind: "video",
+      title: "Docker Crash Course (TechWorld with Nana)",
+      url: "https://www.youtube.com/watch?v=3c-iBn73dDE",
+      note: "Hands-on with images, containers, and the developer workflow this story showed from above.",
+    },
+    {
+      kind: "docs",
+      title: "Docker: What is a container?",
+      url: "https://www.docker.com/resources/what-container/",
+      note: "Docker's own definition, with the container-versus-VM comparison made precise.",
+    },
+    {
+      kind: "article",
+      title: "The Twelve-Factor App",
+      url: "https://12factor.net",
+      note: "The classic checklist for building an app that can live happily in any of these homes.",
+    },
   ],
 });

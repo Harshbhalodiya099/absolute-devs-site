@@ -5,7 +5,7 @@
  * name is a compile error, not a blank spot on the stage.
  */
 import type { AccentName, GlyphName } from "./glyphs";
-import type { ActorSpec, Point } from "./types";
+import type { ActorSpec, Point, RouteRef } from "./types";
 
 interface Common {
   note?: string;
@@ -61,16 +61,17 @@ export function dot(p: Point & Common & { r?: number; color?: AccentName }): Act
 }
 
 /* Wires and packets are not placed — they are derived from relationships, so
-   their factories are internal to the scene builder (connect / packet). */
+   their factories are internal to the scene builder (connect / packet). Both
+   carry their route's length so motion can derive travel/draw durations. */
 
-export function wireSpec(d: string, opts: { color?: AccentName; dashed?: boolean } = {}): ActorSpec {
-  return { kind: "wire", x: 0, y: 0, props: { d, color: opts.color, dashed: opts.dashed } };
+export function wireSpec(route: RouteRef, opts: { color?: AccentName; dashed?: boolean } = {}): ActorSpec {
+  return { kind: "wire", x: 0, y: 0, props: { d: route.d, len: route.len, color: opts.color, dashed: opts.dashed } };
 }
 
 export function packetSpec(
-  d: string,
+  route: RouteRef,
   opts: { color?: AccentName; r?: number; label?: string; note?: string } = {},
 ): ActorSpec {
   const { note, ...props } = opts;
-  return { kind: "packet", x: 0, y: 0, props: { ...props, path: d }, note };
+  return { kind: "packet", x: 0, y: 0, props: { ...props, path: route.d, len: route.len }, note };
 }

@@ -47,15 +47,38 @@ export function ArticleShell({ story }: { story: StoryDef }) {
           <ArticleSection key={s.id} scene={s} />
         ))}
 
-        {/* outro */}
-        {story.outro?.length ? (
+        {/* outro + go deeper */}
+        {story.outro?.length || story.references?.length ? (
           <footer className="mt-16">
             <div className="mb-10 h-px w-full bg-gradient-to-r from-slate-700/70 via-slate-800 to-transparent" />
-            {story.outro.map((p, i) => (
+            {(story.outro ?? []).map((p, i) => (
               <p key={i} className="mt-5 text-pretty text-[1.02rem] leading-[1.85] text-slate-300">
                 {p}
               </p>
             ))}
+            {story.references?.length ? (
+              <section className="mt-12">
+                <p className="text-[11px] font-semibold tracking-[0.2em] text-slate-500 uppercase">Go deeper</p>
+                <ul className="mt-4 space-y-3.5">
+                  {story.references.map((r) => (
+                    <li key={r.url} className="text-sm leading-relaxed text-slate-400">
+                      <span className="mr-2.5 inline-block rounded-full border border-slate-700/70 px-2 py-0.5 align-middle text-[10px] tracking-wider text-teal-300/70 uppercase">
+                        {r.kind}
+                      </span>
+                      <a
+                        href={r.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium text-slate-200 underline decoration-slate-700 underline-offset-4 transition-colors hover:decoration-teal-300/60"
+                      >
+                        {r.title}
+                      </a>
+                      {r.note ? <span> — {r.note}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
             <p className="mt-10 text-center text-slate-600" aria-hidden>
               ∎
             </p>

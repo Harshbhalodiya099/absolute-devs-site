@@ -39,10 +39,20 @@ const NodeR: FC<RenderCtx> = ({ p, glow }) => {
         strokeWidth={1.2}
         style={{ opacity: ringOpacity }}
       />
-      <rect x={-w / 2} y={-h / 2} width={w} height={h} rx={16} fill={C.card} stroke={C.cardEdge} strokeWidth={1} />
+      <rect
+        x={-w / 2}
+        y={-h / 2}
+        width={w}
+        height={h}
+        rx={16}
+        fill={C.card}
+        stroke={p.accent ? a : C.cardEdge}
+        strokeOpacity={p.accent ? 0.4 : 1}
+        strokeWidth={1}
+      />
       <rect x={-w / 2} y={-h / 2} width={w} height={h} rx={16} fill="url(#nodeSheen)" opacity={0.5} />
       {p.glyph && (
-        <g transform="translate(0, -14)">
+        <g transform="translate(0, -16)">
           <Glyph name={p.glyph} color={a} />
         </g>
       )}
@@ -62,11 +72,11 @@ const NodeR: FC<RenderCtx> = ({ p, glow }) => {
 
 const PacketR: FC<RenderCtx> = ({ p }) => {
   const a = accent(p.color);
-  const r: number = p.r ?? 6;
+  const r: number = p.r ?? 8;
   return (
     <g>
-      <circle r={r * 2.6} fill={a} opacity={0.16} />
-      <circle r={r} fill={a} style={{ filter: `drop-shadow(0 0 8px ${a})` }} />
+      <circle r={r * 2.6} fill={a} opacity={0.2} />
+      <circle r={r} fill={a} style={{ filter: `drop-shadow(0 0 10px ${a})` }} />
       {p.label && (
         <text y={-14} textAnchor="middle" fill={a} fontSize={11} fontWeight={600} letterSpacing="0.05em">
           {p.label}

@@ -119,11 +119,71 @@ export function compileScene(content: SceneContent): CompiledScene {
     }
   }
 
+  // The default camera frames the scene's content, not the whole world.
+  // resetCam() emits NaN keyframes as a "return home" sentinel — resolve them
+  // now that the content bounds are known.
+  const home = computeHome(actors);
+  const homeOf: Record<CameraChannel, number> = { camX: home.x, camY: home.y, camZoom: home.zoom };
   for (const [ch, kfs] of Object.entries(camera) as [CameraChannel, Keyframe[]][]) {
-    camera[ch] = finishTrack(kfs, channelDefault(ch));
+    for (const kf of kfs) {
+      if (Number.isNaN(kf.to)) kf.to = homeOf[ch];
+    }
+    camera[ch] = finishTrack(kfs, homeOf[ch]);
   }
 
-  return { actors, camera, markers, captions, duration: cursor };
+  return { actors, camera, home, markers, captions, duration: cursor };
+}
+
+/* ---------------- home camera ---------------- */
+
+const HOME_MARGIN = 50;
+const HOME_MAX_ZOOM = 2.2;
+
+/**
+ * The scene's default framing: fit the bounds of every actor that ever
+ * becomes visible (footprints included, travel positions of moving actors
+ * included). Packets and wires are excluded — they live between actors and
+ * would only re-add the space the framing removes.
+ */
+function computeHome(actors: CompiledActor[]): CompiledScene["home"] {
+  const min = { x: Infinity, y: Infinity };
+  const max = { x: -Infinity, y: -Infinity };
+  for (const a of actors) {
+    if (a.spec.kind === "packet" || a.spec.kind === "wire") continue;
+    const opacity = a.tracks.opacity;
+    const revealed = a.spec.visible || (opacity?.some((kf) => kf.to > 0.1) ?? false);
+    if (!revealed) continue;
+    const hw = (a.spec.box?.w ?? 0) / 2;
+    const hh = (a.spec.box?.h ?? 0) / 2;
+    for (const x of trackValues(a.tracks.x, a.spec.x)) {
+      min.x = Math.min(min.x, x - hw);
+      max.x = Math.max(max.x, x + hw);
+    }
+    for (const y of trackValues(a.tracks.y, a.spec.y)) {
+      min.y = Math.min(min.y, y - hh);
+      max.y = Math.max(max.y, y + hh);
+    }
+  }
+  if (!Number.isFinite(min.x) || !Number.isFinite(min.y)) {
+    return { x: STAGE_W / 2, y: STAGE_H / 2, zoom: 1, w: STAGE_W, h: STAGE_H };
+  }
+  const w = max.x - min.x + HOME_MARGIN * 2;
+  const h = max.y - min.y + HOME_MARGIN * 2;
+  const fit = Math.min(STAGE_W / w, STAGE_H / h);
+  return {
+    x: (min.x + max.x) / 2,
+    y: (min.y + max.y) / 2,
+    zoom: Math.min(Math.max(fit, 0.8), HOME_MAX_ZOOM),
+    w,
+    h,
+  };
+}
+
+/** Every value a (finished) track visits, plus the channel's resting value. */
+function trackValues(track: Track | undefined, resting: number): number[] {
+  const values = [resting];
+  for (const kf of track ?? []) values.push(kf.from, kf.to);
+  return values;
 }
 
 /* ---------------- sample ---------------- */

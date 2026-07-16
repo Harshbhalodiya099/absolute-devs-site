@@ -39,6 +39,34 @@ body {
   -webkit-backdrop-filter: blur(14px);
 }
 
+/* library cards: each card carries its story's accent in --acc */
+.story-card {
+  transition:
+    border-color 0.3s ease,
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+.story-card:hover {
+  border-color: color-mix(in srgb, var(--acc) 45%, transparent);
+  box-shadow: 0 16px 44px -16px color-mix(in srgb, var(--acc) 30%, transparent);
+  transform: translateY(-3px);
+}
+
+/* the headline's animated gradient word */
+.shimmer-text {
+  background: linear-gradient(100deg, #5eead4, #7dd3fc 35%, #c4b5fd 65%, #5eead4);
+  background-size: 220% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: shimmer-slide 7s linear infinite;
+}
+@keyframes shimmer-slide {
+  to {
+    background-position: -220% 0;
+  }
+}
+
 /* the timeline scrubber's native input stays invisible until keyboard focus */
 .scrubber::-webkit-slider-thumb {
   appearance: none;

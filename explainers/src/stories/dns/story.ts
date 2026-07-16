@@ -1,11 +1,11 @@
 /**
  * "How the internet finds google.com" — the engine's reference story.
  *
- * This file is pure storytelling: it casts actors, connects them, and
- * composes motion. No coordinates for wires or packets (connections derive
- * them), no timestamps (seq/all/stagger compose them), no strings for
- * references (refs are typed handles). The next explainer is another folder
- * shaped exactly like this one.
+ * This file is pure storytelling: it casts presets, connects them, and
+ * composes motion. No coordinates for wires or packets (connections own
+ * them: send travels one lane, reply the mirrored one), no timestamps
+ * (seq/all/stagger compose them), no strings for references (refs are typed
+ * handles). The next explainer is another folder shaped exactly like this one.
  */
 import {
   all,
@@ -15,6 +15,7 @@ import {
   defineStory,
   dim,
   draw,
+  enter,
   fadeTo,
   flash,
   frame,
@@ -26,11 +27,12 @@ import {
   rightOf,
   scene,
   seq,
+  spot,
   stagger,
   toggle,
   token,
-  travel,
   undim,
+  v,
   wait,
 } from "../../engine";
 import { meta } from "./meta";
@@ -54,19 +56,15 @@ const leavingHome = scene({
   ],
   setup: (s) => {
     const { laptop, browserCache, osCache, resolver } = s.cast({
-      laptop: node({
-        x: 150,
-        y: 265,
-        glyph: "laptop",
+      laptop: v.browser({
+        ...spot("left"),
         label: "Your computer",
-        accent: "blue",
         note: "Everything starts here: you typed google.com and pressed Enter. To fetch the page, your machine first needs Google's numeric IP address.",
       }),
-      browserCache: node({
+      browserCache: v.cache({
         x: 420,
         y: 120,
         w: 158,
-        glyph: "cache",
         label: "Browser cache",
         sub: "recently seen domains",
         accent: "cyan",
@@ -82,14 +80,11 @@ const leavingHome = scene({
         accent: "violet",
         note: "The operating system keeps its own resolver cache, plus /etc/hosts — a hand-written address book that predates DNS itself.",
       }),
-      resolver: node({
-        x: 795,
-        y: 265,
+      resolver: v.server({
+        ...spot("right"),
         w: 168,
-        glyph: "server",
         label: "DNS resolver",
         sub: "usually your ISP, or 8.8.8.8",
-        accent: "cyan",
         note: "A recursive resolver answers “where is X?” for thousands of users. It doesn't know the answer — it knows the path to the answer.",
       }),
     });
@@ -97,10 +92,6 @@ const leavingHome = scene({
     const toBrowser = s.connect(laptop, browserCache, { bow: 20, dashed: true });
     const toOs = s.connect(laptop, osCache, { bow: -20, dashed: true });
     const toResolver = s.connect(laptop, resolver, { bow: 90, dashed: true });
-
-    const q1 = s.packet(toBrowser, { color: "cyan", label: "google.com?" });
-    const q2 = s.packet(toOs, { color: "violet", label: "google.com?" });
-    const q3 = s.packet(toResolver, { color: "cyan", label: "where is google.com?" });
 
     const { missA, missB, askBubble, knowBubble } = s.cast({
       missA: token({ ...rightOf(browserCache, 46), text: "miss", accent: "rose" }),
@@ -123,11 +114,11 @@ const leavingHome = scene({
       "Before asking the internet, the browser checks every notebook it owns — its own cache, then the operating system's.",
       [
         appear(laptop),
-        stagger(0.2, appear(browserCache), appear(osCache)),
+        enter([browserCache, osCache], 0.2),
         stagger(0.2, draw(toBrowser, 0.5), draw(toOs, 0.5)),
         all(
-          seq(travel(q1, 1.0), flash(browserCache), wait(0.4), appear(missA)),
-          seq(wait(0.6), travel(q2, 1.0), flash(osCache), wait(0.4), appear(missB)),
+          seq(toBrowser.send({ color: "cyan", label: "google.com?", dur: 1.0 }), flash(browserCache), wait(0.4), appear(missA)),
+          seq(wait(0.6), toOs.send({ color: "violet", label: "google.com?", dur: 1.0 }), flash(osCache), wait(0.4), appear(missB)),
         ),
         wait(0.2),
         all(dim(browserCache), dim(osCache), fadeTo(missA, 0.4), fadeTo(missB, 0.4)),
@@ -139,7 +130,7 @@ const leavingHome = scene({
       [
         appear(askBubble),
         all(appear(resolver), seq(wait(0.4), draw(toResolver, 0.8))),
-        travel(q3, 1.8, { keepAlive: true }),
+        toResolver.send({ color: "cyan", label: "where is google.com?", dur: 1.8, keepAlive: true }),
         all(pulse(resolver, 2.8), seq(wait(0.4), appear(knowBubble))),
       ],
       { hold: 1.0 },
@@ -166,13 +157,11 @@ const hierarchy = scene({
   ],
   setup: (s) => {
     const { resolver, root, tld, auth } = s.cast({
-      resolver: node({
+      resolver: v.server({
         x: 145,
         y: 280,
         w: 150,
-        glyph: "server",
         label: "Resolver",
-        accent: "cyan",
         note: "The resolver does the walking so your computer doesn't have to. Each reply tells it who to ask next.",
       }),
       root: node({
@@ -195,11 +184,10 @@ const hierarchy = scene({
         accent: "violet",
         note: "The TLD servers for .com hold referrals for ~160 million domains — not their addresses, but who speaks for each one.",
       }),
-      auth: node({
+      auth: v.server({
         x: 615,
         y: 450,
         w: 196,
-        glyph: "server",
         label: "ns1.google.com",
         sub: "Google's own name server",
         accent: "green",
@@ -210,13 +198,6 @@ const hierarchy = scene({
     const upRoot = s.connect(resolver, root, { bow: 70, dashed: true });
     const upTld = s.connect(resolver, tld, { bow: 45, dashed: true });
     const upAuth = s.connect(resolver, auth, { bow: -70, dashed: true });
-
-    const qRoot = s.packet(upRoot, { color: "cyan", label: "google.com?" });
-    const refRoot = s.packet(s.route(root, resolver, { bow: 55 }), { color: "amber", label: "ask the .com registry" });
-    const qTld = s.packet(upTld, { color: "cyan", label: "google.com?" });
-    const refTld = s.packet(s.route(tld, resolver, { bow: 25 }), { color: "violet", label: "ask Google's own servers" });
-    const qAuth = s.packet(upAuth, { color: "cyan", label: "google.com?" });
-    const refAuth = s.packet(s.route(auth, resolver, { bow: -85 }), { color: "green", label: "142.250.72.14" });
 
     const { rootSays, tldSays, authSays, answer } = s.cast({
       rootSays: bubble({
@@ -243,33 +224,35 @@ const hierarchy = scene({
       answer: token({ ...below(resolver, 70), text: "google.com = 142.250.72.14", accent: "green" }),
     });
 
+    const ask = { color: "cyan", label: "google.com?" } as const;
+
     s.step("Start at the very top. The root doesn't know google.com — but it keeps the book of every ending.", [
       all(
         appear(resolver),
         stagger(0.15, appear(root), all(appear(tld), dim(tld, 0.01)), all(appear(auth), dim(auth, 0.01))),
       ),
-      all(frame([resolver, root]), seq(wait(0.2), draw(upRoot, 0.6), travel(qRoot, 1.3))),
+      all(frame([resolver, root]), seq(wait(0.2), draw(upRoot, 0.6), upRoot.send({ ...ask, dur: 1.3 }))),
       all(pulse(root, 1.7), seq(wait(0.2), appear(rootSays))),
       wait(0.7),
-      travel(refRoot, 1.2),
+      upRoot.reply({ color: "amber", label: "ask the .com registry", dur: 1.2 }),
     ]);
 
     s.step("Down one level. The .com registry narrows 160 million domains to the one server that speaks for Google.", [
       all(fadeTo(rootSays, 0, 0.4), dim(root), undim(tld), frame([resolver, tld])),
       draw(upTld, 0.6),
-      travel(qTld, 1.2),
+      upTld.send({ ...ask, dur: 1.2 }),
       all(pulse(tld, 1.7), seq(wait(0.2), appear(tldSays))),
       wait(0.7),
-      travel(refTld, 1.2),
+      upTld.reply({ color: "violet", label: "ask Google's own servers", dur: 1.2 }),
     ]);
 
     s.step("One more hop — to Google's own name server. Its answer is not a referral. It's the address.", [
       all(fadeTo(tldSays, 0, 0.4), dim(tld), undim(auth), frame([resolver, auth])),
       draw(upAuth, 0.6),
-      travel(qAuth, 1.3),
+      upAuth.send({ ...ask, dur: 1.3 }),
       all(pulse(auth, 1.9), seq(wait(0.2), appear(authSays))),
       wait(0.7),
-      travel(refAuth, 1.4),
+      upAuth.reply({ color: "green", label: "142.250.72.14", dur: 1.4 }),
     ]);
 
     s.step(
@@ -312,43 +295,42 @@ const cached = scene({
     const second = p.visit === "second";
 
     const { laptop, cache, resolver, root, tld, auth } = s.cast({
-      laptop: node({
+      laptop: v.browser({
         x: 165,
         y: 265,
-        glyph: "laptop",
         label: "Your computer",
-        accent: "blue",
         note: "Same machine, same question. What changes the second time is only what it remembers.",
       }),
-      cache: node({
+      cache: v.cache({
         x: 165,
         y: 105,
         w: 158,
-        glyph: "cache",
         label: "Browser cache",
         sub: second ? "google.com ✓ (TTL 300s)" : "empty",
         accent: "cyan",
         note: "Answers are stored with a time-to-live (TTL). Until it expires, this lookup costs nothing.",
         visible: true,
       }),
-      resolver: node({ x: 480, y: 265, w: 150, glyph: "server", label: "Resolver", accent: "cyan", visible: true }),
+      resolver: v.server({ x: 480, y: 265, w: 150, label: "Resolver", visible: true }),
       root: node({ x: 790, y: 105, w: 150, glyph: "book", label: "Root", accent: "amber", visible: true }),
       tld: node({ x: 815, y: 265, w: 150, glyph: "book", label: ".com registry", accent: "violet", visible: true }),
-      auth: node({ x: 790, y: 430, w: 160, glyph: "server", label: "ns1.google.com", accent: "green", visible: true }),
+      auth: v.server({ x: 790, y: 430, w: 160, label: "ns1.google.com", accent: "green", visible: true }),
     });
 
     const wCache = s.connect(laptop, cache, { bow: 0, dashed: true });
-    const pCache = s.packet(wCache, { color: "cyan", label: "google.com?" });
 
     if (second) {
-      const pInstant = s.packet(s.route(cache, laptop, { bow: 0 }), { color: "green", label: "142.250.72.14" });
       const clock = s.add(label({ x: 480, y: 480, text: "≈ 0 ms — answered from memory", size: 14, color: "green" }));
 
       s.step("Second visit: the browser asks its own cache first — and this time the entry is there, still fresh.", [
         all(appear(laptop), dim(resolver, 0.01), dim(root, 0.01), dim(tld, 0.01), dim(auth, 0.01)),
         draw(wCache, 0.4),
-        travel(pCache, 0.7),
-        all(pulse(cache, 1.6), seq(wait(0.5), travel(pInstant, 0.7), glowOn(laptop))),
+        wCache.exchange({
+          send: { color: "cyan", label: "google.com?", dur: 0.7 },
+          reply: { color: "green", label: "142.250.72.14", dur: 0.7 },
+          gap: 0.5,
+        }),
+        all(pulse(cache, 1.6), glowOn(laptop)),
       ]);
 
       s.step(
@@ -364,41 +346,30 @@ const cached = scene({
     const wTld = s.connect(resolver, tld, { bow: 25, dashed: true });
     const wAuth = s.connect(resolver, auth, { bow: -40, dashed: true });
 
-    const pRes = s.packet(wRes, { color: "cyan", label: "google.com?" });
-    const pRoot = s.packet(wRoot, { color: "cyan" });
-    const pRootBack = s.packet(s.route(root, resolver, { bow: 30 }), { color: "amber" });
-    const pTld = s.packet(wTld, { color: "cyan" });
-    const pTldBack = s.packet(s.route(tld, resolver, { bow: 15 }), { color: "violet" });
-    const pAuth = s.packet(wAuth, { color: "cyan" });
-    const pAuthBack = s.packet(s.route(auth, resolver, { bow: -30 }), { color: "green", label: "142.250.72.14" });
-    const pHome = s.packet(s.route(resolver, laptop, { bow: -30 }), { color: "green", label: "142.250.72.14" });
     const clock = s.add(label({ x: 480, y: 480, text: "≈ 120 ms of asking around", size: 14, color: "amber" }));
+
+    const hop = (wire: typeof wRoot, replyColor: "amber" | "violet" | "green", replyLabel?: string) =>
+      seq(
+        draw(wire, 0.4),
+        wire.send({ color: "cyan", dur: 0.8 }),
+        wire.reply({ color: replyColor, label: replyLabel, dur: 0.8 }),
+      );
 
     s.step(
       "First visit: the cache is empty, so the question makes the full pilgrimage — resolver, root, registry, Google.",
       [
         appear(laptop),
         draw(wCache, 0.3),
-        travel(pCache, 0.6),
+        wCache.send({ color: "cyan", label: "google.com?", dur: 0.6 }),
         flash(cache),
         wait(0.3),
         draw(wRes, 0.4),
-        travel(pRes, 0.9),
+        wRes.send({ color: "cyan", label: "google.com?", dur: 0.9 }),
         all(
           pulse(resolver, 5.4),
-          seq(
-            draw(wRoot, 0.4),
-            travel(pRoot, 0.8),
-            travel(pRootBack, 0.8),
-            draw(wTld, 0.4),
-            travel(pTld, 0.8),
-            travel(pTldBack, 0.8),
-            draw(wAuth, 0.4),
-            travel(pAuth, 0.8),
-            travel(pAuthBack, 0.8),
-          ),
+          seq(hop(wRoot, "amber"), hop(wTld, "violet"), hop(wAuth, "green", "142.250.72.14")),
         ),
-        travel(pHome, 0.9),
+        wRes.reply({ color: "green", label: "142.250.72.14", dur: 0.9 }),
         glowOn(laptop),
       ],
     );
@@ -419,5 +390,31 @@ export default defineStory({
   outro: [
     "So that's the quiet machinery behind ten typed characters: two local caches checked, one resolver dispatched, three levels of hierarchy walked, one authoritative answer carried home — and every stop along the way taking notes so it never has to happen again. All before your browser has sent a single byte to Google.",
     "The design is worth pausing on. DNS has no center, no master list, no single machine that could fail and take the names down with it. It scales because each level knows almost nothing — just who to ask next — and it feels instant because everyone remembers. Delegation plus caching: two old ideas that still resolve billions of questions an hour, invisibly, including the one you asked when you opened this page.",
+  ],
+  references: [
+    {
+      kind: "interactive",
+      title: "Mess With DNS",
+      url: "https://messwithdns.net",
+      note: "Julia Evans' sandbox: you get a real subdomain and break DNS on purpose to see what actually happens.",
+    },
+    {
+      kind: "article",
+      title: "How DNS Works (comic)",
+      url: "https://howdns.works",
+      note: "The whole resolution walk retold as a friendly comic — a perfect second pass over what you just watched.",
+    },
+    {
+      kind: "course",
+      title: "Implement DNS in a Weekend",
+      url: "https://implement-dns.wizardzines.com",
+      note: "Build a toy resolver in ~200 lines of Python; nothing cements the walk like performing it yourself.",
+    },
+    {
+      kind: "docs",
+      title: "Cloudflare: What is DNS?",
+      url: "https://www.cloudflare.com/learning/dns/what-is-dns/",
+      note: "A clean reference for the record types and server roles this story deliberately skipped.",
+    },
   ],
 });

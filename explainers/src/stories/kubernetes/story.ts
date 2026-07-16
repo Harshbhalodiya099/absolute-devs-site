@@ -1,36 +1,39 @@
 /**
  * "How Kubernetes keeps your app alive" — a second reference story.
  *
- * Pure storytelling on top of the engine: cast, connect, compose motion. The
- * arc is deliberately a story, not a feature tour — one app's journey from a
- * fragile single container to a self-healing cluster, built around the one
- * idea underneath all of Kubernetes: the reconciliation loop.
+ * Pure storytelling on top of the engine: cast presets, connect, fan out,
+ * compose motion. Positions come from the layout engine (spot/column/grid),
+ * relationships own their packets (send/reply), fanouts own their wiring, and
+ * semantic verbs (crash, enter) replace hand-built choreography.
  */
 import {
   all,
   appear,
   below,
   bubble,
+  column,
+  crash,
   defineStory,
   dim,
   draw,
+  enter,
   fadeTo,
   flash,
   frame,
-  glowOff,
   glowOn,
+  grid,
   label,
-  node,
   pulse,
   region,
   resetCam,
   scene,
   seq,
   shake,
+  spot,
   stagger,
   toggle,
   token,
-  travel,
+  v,
   wait,
 } from "../../engine";
 import { meta } from "./meta";
@@ -53,61 +56,45 @@ const oneServer = scene({
     "The figure below plays out that night. Watch what happens after the crash: nothing. No alarm inside the system, no reflex, no recovery. The next request simply finds an empty room, and it keeps finding one until a human wakes up. That gap — between 'it broke' and 'someone noticed' — is the entire reason the rest of this story exists.",
   ],
   setup: (s) => {
-    const { users, pod } = s.cast({
-      users: node({
-        x: 150,
-        y: 262,
-        glyph: "user",
-        label: "Users",
+    const { users, app } = s.cast({
+      users: v.users({
+        ...spot("left"),
         sub: "just want the page",
-        accent: "blue",
         note: "Real people hitting your app. They don't know or care how many servers you run — only whether the page loads.",
       }),
-      pod: node({
+      app: v.pod({
         x: 680,
         y: 262,
-        glyph: "box",
         label: "your-app",
         sub: "1 container · 1 server",
-        accent: "green",
+        w: 150,
         note: "A container is just a running process with its dependencies packed in. Isolated and portable — but still mortal. When it dies, nothing here brings it back.",
       }),
     });
 
     const { clock, err, downSays } = s.cast({
       clock: label({ x: 680, y: 110, text: "03:00", size: 26, color: "amber" }),
-      err: token({ ...below(pod, 66), text: "503 · no healthy backend", accent: "rose" }),
-      downSays: bubbleBelow(users, ["“Is the site down?”"]),
+      err: token({ ...below(app, 66), text: "503 · no healthy backend", accent: "rose" }),
+      downSays: bubble({ ...below(users, 84), w: 210, lines: ["“Is the site down?”"], accent: "blue" }),
     });
 
-    const link = s.connect(users, pod, { bow: 40, dashed: true });
-    const r1 = s.packet(link, { color: "blue", label: "GET /" });
-    const r2 = s.packet(link, { color: "blue", label: "GET /" });
-    const rDead = s.packet(link, { color: "rose", label: "GET /" });
+    const link = s.connect(users, app, { bow: 40, dashed: true });
 
-    s.step(
-      "For months this is enough: a request arrives, the one container answers, everyone goes home happy.",
-      [
-        stagger(0.25, appear(users), appear(pod)),
-        draw(link, 0.6),
-        all(pulse(pod, 3.2), seq(travel(r1, 1.1), wait(0.2), travel(r2, 1.1))),
-      ],
-    );
+    s.step("For months this is enough: a request arrives, the one container answers, everyone goes home happy.", [
+      enter([users, app], 0.25),
+      draw(link),
+      all(pulse(app, 3.2), seq(link.send({ label: "GET /", dur: 1.1 }), wait(0.2), link.send({ label: "GET /", dur: 1.1 }))),
+    ]);
 
-    s.step(
-      "Then, one night, it crashes — a memory leak, a bad deploy, a kernel hiccup. Which one hardly matters.",
-      [
-        appear(clock),
-        shake(pod),
-        wait(0.7),
-        all(glowOff(pod), fadeTo(pod, 0.12, 0.6)),
-      ],
-    );
+    s.step("Then, one night, it crashes — a memory leak, a bad deploy, a kernel hiccup. Which one hardly matters.", [
+      appear(clock),
+      crash(app),
+    ]);
 
     s.step(
       "Nothing is watching. The next request finds an empty room — and it stays that way until a human wakes up.",
       [
-        travel(rDead, 1.3, { keepAlive: true }),
+        link.send({ color: "rose", label: "GET /", dur: 1.3, keepAlive: true }),
         all(appear(err), seq(wait(0.3), appear(downSays))),
         wait(1.4),
       ],
@@ -134,14 +121,11 @@ const controlLoop = scene({
     "So watch what happens when a pod dies in the figure below. To the controller it isn't an emergency — it's just the two numbers disagreeing for a moment. Three wanted, two running. It schedules one more, the numbers match again, and the loop goes back to being boring. Kill another and it'll do the same thing. That's the whole idea; everything else is detail.",
   ],
   setup: (s) => {
-    const { controller, field, p1, p2, p3, p2b, matchTok, gapTok, healTok } = s.cast({
-      controller: node({
+    const { ctl, field } = s.cast({
+      ctl: v.controller({
         x: 185,
         y: 262,
-        glyph: "gear",
-        label: "Controller",
         sub: "desired: 3 replicas",
-        accent: "violet",
         note: "A controller is a small program running one endless loop: read the desired state, look at the actual state, and take the smallest action that moves reality toward the wish.",
       }),
       field: region({
@@ -153,57 +137,48 @@ const controlLoop = scene({
         accent: "dim",
         note: "The observed world: whatever pods are alive right now. The controller never trusts this to stay correct — it re-checks it constantly.",
       }),
-      p1: podCard(655, 132),
-      p2: podCard(655, 262),
-      p3: podCard(655, 392),
-      p2b: podCard(655, 262),
-      matchTok: token({ x: 185, y: 392, text: "desired 3 = running 3 ✓", accent: "green" }),
-      gapTok: token({ x: 185, y: 392, text: "running 2 — gap!", accent: "rose" }),
-      healTok: token({ x: 185, y: 392, text: "reconciled → 3 ✓", accent: "green" }),
     });
 
-    const w1 = s.connect(controller, p1, { bow: 60, dashed: true });
-    const w2 = s.connect(controller, p2, { bow: 0, dashed: true });
-    const w3 = s.connect(controller, p3, { bow: -60, dashed: true });
-    const heal = s.packet(s.route(controller, p2b, { bow: 0 }), { color: "violet", label: "start a replacement" });
+    const [top, mid, bot] = grid({ in: field, cols: 1, rows: 3, pad: 70 });
+    const { p1, p2, p3, p2b, matchTok, gapTok, healTok } = s.cast({
+      p1: v.pod({ ...top, sub: "your-app" }),
+      p2: v.pod({ ...mid, sub: "your-app" }),
+      p3: v.pod({ ...bot, sub: "your-app" }),
+      p2b: v.pod({ ...mid, sub: "your-app" }),
+      matchTok: token({ ...below(ctl, 88), text: "desired 3 = running 3 ✓", accent: "green" }),
+      gapTok: token({ ...below(ctl, 88), text: "running 2 — gap!", accent: "rose" }),
+      healTok: token({ ...below(ctl, 88), text: "reconciled → 3 ✓", accent: "green" }),
+    });
 
-    s.step(
-      "You declare a wish, not a procedure: three copies of this app, always. The controller writes it down.",
-      [
-        appear(controller),
-        appear(field),
-        stagger(0.2, appear(p1), appear(p2), appear(p3)),
-        stagger(0.15, draw(w1, 0.5), draw(w2, 0.5), draw(w3, 0.5)),
-      ],
-    );
+    const fan = s.fanout(ctl, [p1, p2, p3], { dashed: true, bowSpread: 60 });
 
-    s.step(
-      "Its entire job is to compare the wish to reality. Three wanted, three running — a match. So it does nothing, happily.",
-      [
-        all(pulse(controller, 2.4), stagger(0.15, flash(p1), flash(p2), flash(p3))),
-        seq(wait(0.4), appear(matchTok)),
-        wait(0.6),
-      ],
-    );
+    s.step("You declare a wish, not a procedure: three copies of this app, always. The controller writes it down.", [
+      appear(ctl),
+      appear(field),
+      enter([p1, p2, p3], 0.2),
+      fan.draw({ gap: 0.15, dur: 0.5 }),
+    ]);
 
-    s.step(
-      "Now kill one — a node reboots, a pod runs out of memory. Reality drifts: three wanted, two running.",
-      [
-        fadeTo(matchTok, 0, 0.3),
-        shake(p2),
-        wait(0.5),
-        all(fadeTo(p2, 0, 0.5), fadeTo(w2, 0.15, 0.5)),
-        appear(gapTok),
-        wait(0.6),
-      ],
-    );
+    s.step("Its entire job is to compare the wish to reality. Three wanted, three running — a match. So it does nothing, happily.", [
+      all(pulse(ctl, 2.4), stagger(0.15, flash(p1), flash(p2), flash(p3))),
+      seq(wait(0.4), appear(matchTok)),
+      wait(0.6),
+    ]);
+
+    s.step("Now kill one — a node reboots, a pod runs out of memory. Reality drifts: three wanted, two running.", [
+      fadeTo(matchTok, 0, 0.3),
+      crash(p2, { remains: 0 }),
+      fadeTo(fan.wires[1], 0.15, 0.5),
+      appear(gapTok),
+      wait(0.6),
+    ]);
 
     s.step(
       "The gap is all it needs. It schedules a fresh pod into the hole, and the count is three again — no human, no pager.",
       [
-        pulse(controller, 3.0),
+        pulse(ctl, 3.0),
         fadeTo(gapTok, 0, 0.3),
-        travel(heal, 1.3),
+        s.send(ctl, p2b, { color: "violet", label: "start a replacement", bow: 0, dur: 1.3 }),
         appear(p2b),
         all(glowOn(p2b), appear(healTok)),
         wait(1.2),
@@ -231,105 +206,94 @@ const anatomy = scene({
     "Follow a single `kubectl apply` through the figure and the whole system stops feeling mysterious. Your command hits the door, gets written to memory, wakes the matchmaker, and finally a kubelet on some node turns the plan into a running container. No component ever gives another an order directly — they each just watch etcd and react. That indirection is exactly what makes the whole thing survivable.",
   ],
   setup: (s) => {
-    const { kubectl, plane, api, etcd, sched, nodes, node1, node2, pod, placed } = s.cast({
-      kubectl: node({
+    const { kubectl, plane, api, etcd, sched, nodes } = s.cast({
+      kubectl: v.browser({
         x: 118,
         y: 118,
-        glyph: "laptop",
         label: "kubectl apply",
         sub: "you, asking",
-        accent: "blue",
         note: "The command line. It doesn't run anything itself — it just sends your desired state to the one endpoint that accepts changes.",
       }),
       plane: region({ x: 470, y: 268, w: 540, h: 430, title: "Control plane — the brain", accent: "dim" }),
-      api: node({
+      api: v.server({
         x: 355,
         y: 148,
-        glyph: "server",
         label: "API server",
         sub: "the only door in",
         accent: "blue",
         note: "Every read and write goes through here. It validates the request and persists it — but it does not act on it. It just records intent.",
       }),
-      etcd: node({
+      etcd: v.database({
         x: 355,
         y: 392,
-        glyph: "database",
         label: "etcd",
         sub: "the cluster's memory",
-        accent: "amber",
         note: "A distributed, consistent key-value store. It holds the single source of truth for the entire cluster. Lose etcd and you lose the cluster's mind.",
       }),
-      sched: node({
+      sched: v.controller({
         x: 610,
         y: 148,
-        glyph: "gear",
         label: "Scheduler",
         sub: "the matchmaker",
-        accent: "violet",
         note: "Watches for pods with no assigned node, scores every node by free CPU, memory, affinity and constraints, and binds each pod to the best fit.",
       }),
       nodes: region({ x: 838, y: 268, w: 190, h: 430, title: "Worker nodes — the muscle", accent: "dim" }),
-      node1: node({ x: 838, y: 208, glyph: "server", label: "Node 1", sub: "kubelet", accent: "cyan", note: "A worker machine. Its kubelet watches the API server for pods assigned to it, then tells the container runtime to actually start them." }),
-      node2: node({ x: 838, y: 392, glyph: "server", label: "Node 2", sub: "kubelet", accent: "cyan", note: "Another worker. Identical role. The scheduler chose Node 1 for this pod, so Node 2 sits this one out." }),
-      pod: podCard(838, 92),
-      placed: token({ ...below(nodesAnchor(838, 92), 4), text: "container started ✓", accent: "green" }),
+    });
+
+    const [n1, n2] = column({ at: { x: 838, y: 300 }, count: 2, gap: 184 });
+    const { node1, node2, podCard, placed } = s.cast({
+      node1: v.server({
+        ...n1,
+        label: "Node 1",
+        sub: "kubelet",
+        note: "A worker machine. Its kubelet watches the API server for pods assigned to it, then tells the container runtime to actually start them.",
+      }),
+      node2: v.server({
+        ...n2,
+        label: "Node 2",
+        sub: "kubelet",
+        note: "Another worker. Identical role. The scheduler chose Node 1 for this pod, so Node 2 sits this one out.",
+      }),
+      podCard: v.pod({ x: 838, y: 92, sub: "your-app" }),
+      placed: token({ x: 838, y: 134, text: "container started ✓", accent: "green" }),
     });
 
     const wApi = s.connect(kubectl, api, { bow: 20, dashed: true });
     const wStore = s.connect(api, etcd, { bow: -40, dashed: true });
     const wNode = s.connect(api, node1, { bow: 55, dashed: true });
+    const scoring = s.fanout(sched, [node1, node2], { virtual: true, color: "violet", bowSpread: 60 });
 
-    const apply = s.packet(wApi, { color: "blue", label: "run this pod" });
-    const store = s.packet(wStore, { color: "amber", label: "write desired state" });
-    const scoreA = s.packet(s.route(sched, node1, { bow: 30 }), { color: "violet", label: "score" });
-    const scoreB = s.packet(s.route(sched, node2, { bow: -30 }), { color: "violet", label: "score" });
-    const bind = s.packet(s.route(sched, api, { bow: 60 }), { color: "violet", label: "bind → Node 1" });
-    const start = s.packet(s.route(api, node1, { bow: 55 }), { color: "green", label: "kubelet: start it" });
-
-    s.step(
-      "Every change enters through exactly one door — the API server. `kubectl apply` hands it your desired state.",
-      [
-        appear(plane),
-        all(appear(kubectl), appear(api)),
-        frame([kubectl, api, etcd], { margin: 90 }),
-        draw(wApi, 0.6),
-        travel(apply, 1.3),
-        pulse(api, 1.8),
-      ],
-    );
+    s.step("Every change enters through exactly one door — the API server. `kubectl apply` hands it your desired state.", [
+      appear(plane),
+      all(appear(kubectl), appear(api)),
+      frame([kubectl, api, etcd], { margin: 90 }),
+      draw(wApi, 0.6),
+      wApi.send({ label: "run this pod", dur: 1.3 }),
+      pulse(api, 1.8),
+    ]);
 
     s.step(
       "The API server doesn't act on it. It writes it to etcd — the cluster's single source of truth. If it isn't in etcd, it never happened.",
-      [
-        appear(etcd),
-        draw(wStore, 0.5),
-        travel(store, 1.2),
-        flash(etcd),
-        wait(0.6),
-      ],
+      [appear(etcd), draw(wStore, 0.5), wStore.send({ color: "amber", label: "write desired state", dur: 1.2 }), flash(etcd), wait(0.6)],
     );
 
-    s.step(
-      "The new pod has no home yet. The scheduler watches for homeless pods, scores each node, and picks the best fit.",
-      [
-        resetCam(),
-        all(appear(sched), appear(nodes), stagger(0.2, appear(node1), appear(node2))),
-        pulse(sched, 3.0),
-        seq(wait(0.3), all(travel(scoreA, 0.9), travel(scoreB, 0.9))),
-        travel(bind, 1.1),
-        pulse(api, 1.4),
-      ],
-    );
+    s.step("The new pod has no home yet. The scheduler watches for homeless pods, scores each node, and picks the best fit.", [
+      resetCam(),
+      all(appear(sched), appear(nodes), enter([node1, node2], 0.2)),
+      pulse(sched, 3.0),
+      seq(wait(0.3), scoring.send({ label: "score", gap: 0, dur: 0.9 })),
+      s.send(sched, api, { color: "violet", label: "bind → Node 1", bow: 60, dur: 1.1 }),
+      pulse(api, 1.4),
+    ]);
 
     s.step(
       "On the winning node, the kubelet sees the assignment and actually starts the container. The wish is finally a running thing.",
       [
-        frame([api, node1, pod], { margin: 90 }),
+        frame([api, node1, podCard], { margin: 90 }),
         draw(wNode, 0.5),
-        travel(start, 1.2),
-        appear(pod),
-        all(glowOn(pod), appear(placed), pulse(node1, 2.0)),
+        wNode.send({ color: "green", label: "kubelet: start it", dur: 1.2 }),
+        appear(podCard),
+        all(glowOn(podCard), appear(placed), pulse(node1, 2.0)),
         wait(1.2),
       ],
       { hold: 1.2 },
@@ -364,14 +328,17 @@ const selfHealing = scene({
     const failing = p.state === "failure";
 
     const { users, svc } = s.cast({
-      users: node({ x: 112, y: 262, glyph: "user", label: "Users", accent: "blue", visible: true, note: "They only ever know one address — the Service's. What runs behind it is invisible to them, by design." }),
-      svc: node({
+      users: v.users({
+        x: 112,
+        y: 262,
+        visible: true,
+        note: "They only ever know one address — the Service's. What runs behind it is invisible to them, by design.",
+      }),
+      svc: v.loadBalancer({
         x: 342,
         y: 262,
-        glyph: "balancer",
         label: "Service",
         sub: "one stable address",
-        accent: "cyan",
         visible: true,
         note: "A fixed virtual IP that never changes. It tracks the current set of healthy pods and load-balances across them, so callers never chase a moving target.",
       }),
@@ -380,103 +347,87 @@ const selfHealing = scene({
     const toUsers = s.connect(users, svc, { bow: 0, dashed: true });
 
     if (!failing) {
+      const slots = column({ at: { x: 842, y: 270 }, count: 4, gap: 116 });
       const { a1, a2, b1, b2 } = s.cast({
-        node1: node({ x: 632, y: 148, glyph: "server", label: "Node 1", accent: "cyan", visible: true }),
-        node2: node({ x: 632, y: 392, glyph: "server", label: "Node 2", accent: "cyan", visible: true }),
-        a1: podCard(842, 96),
-        a2: podCard(842, 208),
-        b1: podCard(842, 332),
-        b2: podCard(842, 444),
+        node1: v.server({ x: 632, y: 148, label: "Node 1", visible: true }),
+        node2: v.server({ x: 632, y: 392, label: "Node 2", visible: true }),
+        a1: v.pod({ ...slots[0], sub: "your-app" }),
+        a2: v.pod({ ...slots[1], sub: "your-app" }),
+        b1: v.pod({ ...slots[2], sub: "your-app" }),
+        b2: v.pod({ ...slots[3], sub: "your-app" }),
       });
 
       const pods = [a1, a2, b1, b2];
-      const wires = pods.map((pod, i) => s.connect(svc, pod, { bow: 40 - i * 26, dashed: true }));
-      const req = s.packet(toUsers, { color: "blue", label: "GET /" });
-      const fanout = pods.map((pod) => s.packet(s.route(svc, pod, { bow: 0 }), { color: "cyan" }));
+      const fan = s.fanout(svc, pods, { dashed: true });
 
-      s.step(
-        "Behind one Service address sit four pods across two nodes. The Service is the only thing your users ever talk to.",
-        [
-          stagger(0.12, appear(a1), appear(a2), appear(b1), appear(b2)),
-          draw(toUsers, 0.4),
-          stagger(0.1, ...wires.map((w) => draw(w, 0.4))),
-        ],
-      );
+      s.step("Behind one Service address sit four pods across two nodes. The Service is the only thing your users ever talk to.", [
+        enter(pods, 0.12),
+        draw(toUsers, 0.4),
+        fan.draw({ gap: 0.1, dur: 0.4 }),
+      ]);
 
       s.step(
         "Every request hits the Service, which spreads it across whatever healthy pods exist right now.",
-        [
-          travel(req, 0.8),
-          stagger(0.18, ...fanout.map((f) => travel(f, 0.8))),
-          all(...pods.map((pod) => pulse(pod, 1.8))),
-          wait(1.0),
-        ],
+        [toUsers.send({ label: "GET /", dur: 0.8 }), fan.send({ color: "cyan", gap: 0.18, dur: 0.8 }), fan.pulse(1.8), wait(1.0)],
         { hold: 1.0 },
       );
       return;
     }
 
     /* failure branch: node 2 dies; its pods reschedule onto node 1 */
-    const { node1, node2, a1, a2, dead1, dead2, r1, r2, downTok } = s.cast({
-      node1: node({ x: 632, y: 150, glyph: "server", label: "Node 1", accent: "cyan", visible: true }),
-      node2: node({ x: 632, y: 396, glyph: "server", label: "Node 2", sub: "dead", accent: "cyan", visible: true }),
-      a1: podCard(842, 84),
-      a2: podCard(842, 190),
-      dead1: podCard(842, 336),
-      dead2: podCard(842, 448),
-      r1: podCard(842, 296),
-      r2: podCard(842, 408),
-      downTok: token({ ...below(nodesAnchor(632, 396), 8), text: "Node 2 lost", accent: "rose" }),
+    const [sA, sB] = column({ at: { x: 842, y: 137 }, count: 2, gap: 106 });
+    const [dA, dB] = column({ at: { x: 842, y: 392 }, count: 2, gap: 112 });
+    const [rA, rB] = column({ at: { x: 842, y: 352 }, count: 2, gap: 112 });
+
+    const { node1, node2, a1, a2, dead1, dead2, r1, r2 } = s.cast({
+      node1: v.server({ x: 632, y: 150, label: "Node 1", visible: true }),
+      node2: v.server({ x: 632, y: 396, label: "Node 2", sub: "dead", visible: true }),
+      a1: v.pod({ ...sA, sub: "your-app" }),
+      a2: v.pod({ ...sB, sub: "your-app" }),
+      dead1: v.pod({ ...dA, sub: "your-app" }),
+      dead2: v.pod({ ...dB, sub: "your-app" }),
+      r1: v.pod({ ...rA, sub: "your-app" }),
+      r2: v.pod({ ...rB, sub: "your-app" }),
+    });
+    const { downTok } = s.cast({
+      downTok: token({ ...below(node2, 12), text: "Node 2 lost", accent: "rose" }),
     });
 
-    const survivors = [a1, a2];
-    const survivorWires = survivors.map((pod, i) => s.connect(svc, pod, { bow: 30 - i * 20, dashed: true }));
-    const req = s.packet(toUsers, { color: "blue", label: "GET /" });
-    const fanoutOk = survivors.map((pod) => s.packet(s.route(svc, pod, { bow: 0 }), { color: "cyan" }));
-    const healWires = [r1, r2].map((pod, i) => s.connect(node1, pod, { bow: -20 + i * 12, dashed: true }));
-    const reschedule = [r1, r2].map((pod) => s.packet(s.route(node1, pod, { bow: 0 }), { color: "violet", label: "reschedule" }));
-    const fanoutNew = [r1, r2].map((pod) => s.packet(s.route(svc, pod, { bow: 0 }), { color: "cyan" }));
+    const survivors = s.fanout(svc, [a1, a2], { dashed: true, bowSpread: 40 });
+    const rescue = s.fanout(node1, [r1, r2], { dashed: true, bowSpread: 24 });
+    const fresh = s.fanout(svc, [r1, r2], { virtual: true });
 
-    s.step(
-      "Same cluster, now under stress. Then Node 2 dies outright — power, kernel, hardware — and both of its pods vanish with it.",
-      [
-        stagger(0.1, appear(a1), appear(a2), appear(dead1), appear(dead2)),
-        draw(toUsers, 0.4),
-        stagger(0.1, ...survivorWires.map((w) => draw(w, 0.4))),
-        wait(0.3),
-        shake(node2),
-        wait(0.5),
-        all(dim(node2), fadeTo(dead1, 0, 0.5), fadeTo(dead2, 0, 0.5), appear(downTok)),
-      ],
-    );
+    s.step("Same cluster, now under stress. Then Node 2 dies outright — power, kernel, hardware — and both of its pods vanish with it.", [
+      enter([a1, a2, dead1, dead2], 0.1),
+      draw(toUsers, 0.4),
+      survivors.draw({ gap: 0.1, dur: 0.4 }),
+      wait(0.3),
+      shake(node2),
+      wait(0.5),
+      all(dim(node2), fadeTo(dead1, 0, 0.5), fadeTo(dead2, 0, 0.5), appear(downTok)),
+    ]);
 
-    s.step(
-      "The Service simply stops routing to the dead pods and keeps serving from the survivors. Your users see nothing.",
-      [
-        travel(req, 0.7),
-        stagger(0.2, ...fanoutOk.map((f) => travel(f, 0.8))),
-        all(pulse(a1, 1.8), pulse(a2, 1.8)),
-        wait(0.8),
-      ],
-    );
+    s.step("The Service simply stops routing to the dead pods and keeps serving from the survivors. Your users see nothing.", [
+      toUsers.send({ label: "GET /", dur: 0.7 }),
+      survivors.send({ color: "cyan", gap: 0.2, dur: 0.8 }),
+      survivors.pulse(1.8),
+      wait(0.8),
+    ]);
 
-    s.step(
-      "Meanwhile the controller notices two pods missing and reschedules them — here, onto Node 1. New pods, new IPs.",
-      [
-        pulse(node1, 3.0),
-        stagger(0.15, ...healWires.map((w) => draw(w, 0.4))),
-        stagger(0.2, ...reschedule.map((m) => travel(m, 0.9))),
-        stagger(0.15, appear(r1), appear(r2)),
-        all(glowOn(r1), glowOn(r2)),
-      ],
-    );
+    s.step("Meanwhile the controller notices two pods missing and reschedules them — here, onto Node 1. New pods, new IPs.", [
+      pulse(node1, 3.0),
+      rescue.draw({ gap: 0.15, dur: 0.4 }),
+      rescue.send({ color: "violet", label: "reschedule", gap: 0.2, dur: 0.9 }),
+      enter([r1, r2], 0.15),
+      all(glowOn(r1), glowOn(r2)),
+    ]);
 
     s.step(
       "Same address, different pods, zero downtime. Pods are disposable; the Service in front of them is forever.",
       [
-        travel(req, 0.7),
-        stagger(0.18, ...fanoutNew.map((f) => travel(f, 0.8))),
-        all(pulse(r1, 1.8), pulse(r2, 1.8), glowOn(svc)),
+        toUsers.send({ label: "GET /", dur: 0.7 }),
+        fresh.send({ color: "cyan", gap: 0.18, dur: 0.8 }),
+        all(fresh.pulse(1.8), glowOn(svc)),
         wait(1.2),
       ],
       { hold: 1.2 },
@@ -493,30 +444,30 @@ export default defineStory({
     "Strip away the vocabulary and Kubernetes is one small idea taken seriously: never tell the computer what to do — tell it what you want, and let a loop close the gap forever. A pod dies, the numbers disagree, the loop fixes it. A node dies, more numbers disagree, the loop fixes that too. There is no separate 'disaster recovery' mode because, from the loop's point of view, a disaster and an ordinary Tuesday look exactly the same.",
     "That's also why the parts are shaped the way they are. One door in (the API server) so every change is recorded and ordered. One memory (etcd) so there's a single truth to reconcile against. Stable Services in front of disposable pods so healing never breaks the caller. None of it is magic — it's delegation and comparison, the same two ideas that quietly run most robust systems, arranged so that the 3 A.M. crash from the first scene resolves itself before anyone's phone even buzzes.",
   ],
+  references: [
+    {
+      kind: "video",
+      title: "The Illustrated Children's Guide to Kubernetes",
+      url: "https://www.youtube.com/watch?v=4ht22ReBjno",
+      note: "The famous eight-minute storybook version — great for making the vocabulary stick.",
+    },
+    {
+      kind: "video",
+      title: "Kubernetes Crash Course (TechWorld with Nana)",
+      url: "https://www.youtube.com/watch?v=X48VuDVv0do",
+      note: "One hour from zero to deploying something real, hands on with kubectl.",
+    },
+    {
+      kind: "docs",
+      title: "Kubernetes Concepts",
+      url: "https://kubernetes.io/docs/concepts/",
+      note: "The official concepts section maps one-to-one onto the actors you just met.",
+    },
+    {
+      kind: "course",
+      title: "Kubernetes the Hard Way",
+      url: "https://github.com/kelseyhightower/kubernetes-the-hard-way",
+      note: "Kelsey Hightower's rite of passage: assemble a cluster by hand until the anatomy scene is muscle memory.",
+    },
+  ],
 });
-
-/* ---------------- small local helpers ---------------- */
-
-/** A pod is just a node with the container glyph and a consistent look. */
-function podCard(x: number, y: number) {
-  return node({
-    x,
-    y,
-    w: 132,
-    glyph: "box",
-    label: "pod",
-    sub: "your-app",
-    accent: "green",
-    note: "A pod wraps one (or a few tightly-coupled) containers. It's the smallest thing Kubernetes schedules — and the smallest thing it will happily throw away and recreate.",
-  });
-}
-
-/** A one-line speech bubble anchored below an actor. */
-function bubbleBelow(ref: Parameters<typeof below>[0], lines: string[]) {
-  return bubble({ ...below(ref, 84), w: 210, lines, accent: "blue" });
-}
-
-/** A point below a pod card placed at (x, y) — pods use a shorter box. */
-function nodesAnchor(x: number, y: number) {
-  return { x, y: y + 42 };
-}

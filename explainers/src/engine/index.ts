@@ -4,9 +4,12 @@
  */
 export * from "./types";
 export * from "./motion";
+export * from "./verbs";
 export * from "./geometry";
+export * from "./layout";
 export * from "./scene";
 export * from "./actors";
+export * from "./presets";
 export { defineMeta, defineStory, type StoryMeta } from "./story";
 export { defineActorKind, registerActor, type RenderCtx } from "./registry";
 export { C, accent, type AccentName, type GlyphName } from "./glyphs";

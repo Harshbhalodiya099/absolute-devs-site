@@ -51,6 +51,28 @@ export interface RouteOpts {
   pad?: number;
 }
 
+/** Numeric length of the quadratic bezier a→c→b. Cheap, DOM-free, authoring-time. */
+function quadLen(a: Point, c: Point, b: Point): number {
+  let len = 0;
+  let prev = a;
+  const N = 24;
+  for (let i = 1; i <= N; i++) {
+    const t = i / N;
+    const u = 1 - t;
+    const p = {
+      x: u * u * a.x + 2 * u * t * c.x + t * t * b.x,
+      y: u * u * a.y + 2 * u * t * c.y + t * t * b.y,
+    };
+    len += Math.hypot(p.x - prev.x, p.y - prev.y);
+    prev = p;
+  }
+  return len;
+}
+
+function makeRoute(a: Point, b: Point, c: Point): RouteRef {
+  return { d: `M ${a.x} ${a.y} Q ${c.x} ${c.y} ${b.x} ${b.y}`, a, b, c, len: quadLen(a, c, b) };
+}
+
 /**
  * A path from one actor/point to another. Endpoints land on actor *edges*
  * (derived from each actor's box), so stories never compute anchor points.
@@ -64,7 +86,18 @@ export function route(from: Placeable, to: Placeable, opts: RouteOpts = {}): Rou
   const a = b1 ? edgePoint(c1, b1, c2, pad) : c1;
   const b = b2 ? edgePoint(c2, b2, c1, pad) : c2;
   const bow = opts.bow ?? Math.hypot(b.x - a.x, b.y - a.y) * 0.15;
-  return { d: arc(a.x, a.y, b.x, b.y, bow), a, b };
+  const c = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 - bow };
+  return makeRoute(a, b, c);
+}
+
+/**
+ * The same route travelled the other way. `mirror` (the default for replies)
+ * reflects the curve to the opposite lane so a response never overlaps the
+ * request visually.
+ */
+export function reverseRoute(r: RouteRef, opts: { mirror?: boolean } = {}): RouteRef {
+  const c = opts.mirror ? { x: r.a.x + r.b.x - r.c.x, y: r.a.y + r.b.y - r.c.y } : r.c;
+  return makeRoute(r.b, r.a, c);
 }
 
 /* ---------------- derived positions ---------------- */

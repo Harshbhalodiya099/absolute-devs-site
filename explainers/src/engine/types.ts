@@ -70,6 +70,10 @@ export interface RouteRef {
   readonly d: string;
   readonly a: Point;
   readonly b: Point;
+  /** Quadratic control point — lets the engine reverse and mirror the route. */
+  readonly c: Point;
+  /** Approximate path length in px — lets motion derive travel/draw durations. */
+  readonly len: number;
 }
 
 /** One keyframe on one channel of one actor. The atom of choreography. */
@@ -136,6 +140,16 @@ export interface SceneDef {
   prose?: string[];
 }
 
+/** A hand-picked external resource for learners who want to go deeper. */
+export interface Reference {
+  title: string;
+  url: string;
+  /** Sets expectations before the click. */
+  kind: "article" | "video" | "book" | "paper" | "docs" | "interactive" | "course";
+  /** Why it's worth the time — one sentence. */
+  note?: string;
+}
+
 export interface StoryDef {
   slug: string;
   title: string;
@@ -148,6 +162,8 @@ export interface StoryDef {
   scenes: SceneDef[];
   /** Closing paragraphs for reading mode, after the last scene. */
   outro?: string[];
+  /** "Go deeper" links shown when the story ends (both modes). */
+  references?: Reference[];
 }
 
 /* ---------------- compiled form ---------------- */
@@ -172,6 +188,13 @@ export interface CompiledActor {
 export interface CompiledScene {
   actors: CompiledActor[];
   camera: Partial<Record<CameraChannel, Track>>;
+  /**
+   * Default camera: frames the scene's content bounds with margin. The camera
+   * starts here and resetCam() returns here (unless a scene opts into
+   * `world: true`). `w`/`h` are the content bounds (margin included) so the
+   * renderer can re-fit the frame to non-default viewport shapes.
+   */
+  home: { x: number; y: number; zoom: number; w: number; h: number };
   /** Absolute start time of each step. */
   markers: number[];
   captions: string[];

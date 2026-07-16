@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { compileScene } from "./timeline";
 import { usePlayer, type Player } from "./player";
 import { Stage } from "./Stage";
-import type { Params, SceneDef, StoryDef } from "./types";
+import type { Params, Reference, SceneDef, StoryDef } from "./types";
 
 const SPEEDS = [0.25, 0.5, 1, 2];
 const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -60,6 +60,7 @@ export function StoryShell({ story }: { story: StoryDef }) {
           setIndex(0);
         }}
         sceneMeta={{ index, total: story.scenes.length, goTo: go, titles: story.scenes.map((s) => s.title) }}
+        references={index === story.scenes.length - 1 ? story.references : undefined}
       />
     </div>
   );
@@ -74,6 +75,7 @@ function ScenePlayer({
   onNext,
   onRestart,
   sceneMeta,
+  references,
 }: {
   scene: SceneDef;
   direction: number;
@@ -81,6 +83,8 @@ function ScenePlayer({
   onNext?: () => void;
   onRestart: () => void;
   sceneMeta: { index: number; total: number; goTo: (i: number) => void; titles: string[] };
+  /** Shown with the takeaway on the story's final scene. */
+  references?: Reference[];
 }) {
   const [params, setParams] = useState<Params>(() =>
     Object.fromEntries((scene.params ?? []).map((p) => [p.id, p.initial])),
@@ -95,6 +99,11 @@ function ScenePlayer({
 
   const player = usePlayer(compiled.duration, compiled.markers, `${scene.id}|${paramsKey}`);
   const [note, setNote] = useState<string | null>(null);
+  const [hintSeen, setHintSeen] = useState(false);
+  const inspect = useCallback((n: string | null) => {
+    if (n) setHintSeen(true);
+    setNote(n);
+  }, []);
 
   // Keyboard: space play/pause, ←/→ step, shift+←/→ scene, R replay.
   useEffect(() => {
@@ -115,7 +124,7 @@ function ScenePlayer({
 
   return (
     <>
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center px-6">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center px-6">
         <motion.section
           initial={{ opacity: 0, x: direction * 32 }}
           animate={{ opacity: 1, x: 0 }}
@@ -123,7 +132,7 @@ function ScenePlayer({
           className="flex w-full flex-1 flex-col items-center"
         >
           {/* narrative header */}
-          <div className="w-full pt-7 pb-3 text-center">
+          <div className="w-full pt-4 pb-2 text-center">
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -136,7 +145,7 @@ function ScenePlayer({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.6, ease: EASE_OUT }}
-              className="mx-auto mt-3 max-w-2xl text-balance text-2xl font-semibold tracking-tight text-slate-100 sm:text-[1.9rem] sm:leading-tight"
+              className="mx-auto mt-2 max-w-2xl text-balance text-2xl font-semibold tracking-tight text-slate-100 sm:text-[1.9rem] sm:leading-tight"
             >
               {scene.title}
             </motion.h1>
@@ -170,52 +179,74 @@ function ScenePlayer({
           )}
 
           {/* stage */}
-          <div className="flex w-full flex-1 items-center justify-center py-1">
-            <Stage scene={compiled} time={player.time} ariaLabel={scene.title} onInspect={setNote} />
+          <div className="flex w-full min-h-0 flex-1 items-center justify-center py-1">
+            <Stage scene={compiled} time={player.time} ariaLabel={scene.title} onInspect={inspect} />
           </div>
 
-          {/* step caption + inspector line */}
+          {/* step caption (takeaway crossfades into this slot) + inspector line */}
           <div className="flex min-h-16 w-full flex-col items-center gap-1.5 pb-1 text-center">
             <AnimatePresence mode="wait">
-              <motion.p
-                key={player.stepIndex}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.35, ease: EASE_OUT }}
-                className="max-w-xl text-pretty text-sm leading-relaxed text-slate-400"
-              >
-                {caption}
-              </motion.p>
-            </AnimatePresence>
-            <p
-              aria-live="polite"
-              className={`max-w-xl text-xs leading-relaxed transition-opacity duration-300 ${
-                note ? "text-teal-200/90 opacity-100" : "text-slate-600 opacity-70"
-              }`}
-            >
-              {note ?? "Hover anything on the stage to learn what it is."}
-            </p>
-          </div>
-
-          {/* takeaway */}
-          <div className="flex min-h-24 w-full items-start justify-center pb-2">
-            <AnimatePresence>
-              {player.ended && (
-                <motion.aside
-                  initial={{ opacity: 0, y: 14 }}
+              {player.ended ? (
+                <motion.div
+                  key="takeaway"
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.5, ease: EASE_OUT }}
-                  className="glass max-w-xl rounded-2xl px-5 py-4 text-center"
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.45, ease: EASE_OUT }}
+                  className="max-w-xl"
                 >
                   <p className="text-[11px] font-semibold tracking-[0.2em] text-slate-500 uppercase">
                     What just happened?
                   </p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-slate-300">{scene.takeaway}</p>
-                </motion.aside>
+                  <p className="mt-1 text-pretty text-sm leading-relaxed text-slate-300">{scene.takeaway}</p>
+                </motion.div>
+              ) : (
+                <motion.p
+                  key={player.stepIndex}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.35, ease: EASE_OUT }}
+                  className="max-w-xl text-pretty text-sm leading-relaxed text-slate-400"
+                >
+                  {caption}
+                </motion.p>
               )}
             </AnimatePresence>
+            {player.ended && references?.length ? (
+              /* the story is over: the hint line's slot becomes the reading list */
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.35, duration: 0.4 }}
+                className="flex max-w-4xl flex-wrap items-center justify-center gap-x-1.5 gap-y-1"
+              >
+                <span className="mr-1 text-[10px] font-semibold tracking-[0.18em] text-slate-600 uppercase">
+                  Go deeper
+                </span>
+                {references.map((r) => (
+                  <a
+                    key={r.url}
+                    href={r.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={`${r.kind} — ${r.note ?? r.title}`}
+                    className="rounded-full border border-slate-700/70 px-2.5 py-0.5 text-[11px] text-slate-400 transition-colors hover:border-slate-500 hover:text-slate-200"
+                  >
+                    {r.title}
+                  </a>
+                ))}
+              </motion.div>
+            ) : (
+              <p
+                aria-live="polite"
+                className={`max-w-xl text-xs leading-relaxed transition-opacity duration-300 ${
+                  note ? "text-teal-200/90 opacity-100" : hintSeen ? "opacity-0" : "text-slate-600 opacity-70"
+                }`}
+              >
+                {note ?? "Hover anything on the stage to learn what it is."}
+              </p>
+            )}
           </div>
         </motion.section>
       </main>

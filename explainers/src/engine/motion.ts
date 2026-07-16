@@ -98,8 +98,20 @@ export function move(ref: ActorRef, to: { x?: number; y?: number }, dur = 0.8): 
   return prim(ref.id, dur, list);
 }
 
-/** Send a packet along its route (progress 0→1) with automatic fade in/out. */
-export function travel(ref: ActorRef, dur = 1.5, opts?: { keepAlive?: boolean; ease?: Act["ease"] }): Motion {
+const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
+
+/** Default duration for a path-bound motion, from the path's length. */
+const autoDur = (ref: ActorRef, pxPerSec: number, lo: number, hi: number, fallback: number): number => {
+  const len = ref.spec.props?.len;
+  return typeof len === "number" ? clamp(len / pxPerSec, lo, hi) : fallback;
+};
+
+/**
+ * Send a packet along its route (progress 0→1) with automatic fade in/out.
+ * Duration defaults from the route's length — longer journeys take longer.
+ */
+export function travel(ref: ActorRef, dur?: number, opts?: { keepAlive?: boolean; ease?: Act["ease"] }): Motion {
+  dur ??= autoDur(ref, 420, 0.7, 1.7, 1.2);
   const list: RelAct[] = [
     { channel: "progress", at: 0, dur, from: 0, to: 1, ease: opts?.ease ?? "inOut" },
     { channel: "opacity", at: 0, dur: 0.18, to: 1, ease: "out" },
@@ -110,8 +122,9 @@ export function travel(ref: ActorRef, dur = 1.5, opts?: { keepAlive?: boolean; e
   return prim(ref.id, dur, list);
 }
 
-/** A wire draws itself. */
-export function draw(ref: ActorRef, dur = 0.8): Motion {
+/** A wire draws itself. Duration defaults from the wire's length. */
+export function draw(ref: ActorRef, dur?: number): Motion {
+  dur ??= autoDur(ref, 900, 0.4, 0.9, 0.7);
   return prim(ref.id, dur, [
     { channel: "opacity", at: 0, dur: 0.15, to: 1, ease: "out" },
     { channel: "progress", at: 0, dur, from: 0, to: 1, ease: "inOut" },
@@ -172,15 +185,23 @@ export function focus(target: Placeable, opts: { zoom?: number; dur?: number } =
  */
 export function frame(refs: ActorRef[], opts: { margin?: number; zoom?: number; maxZoom?: number; dur?: number } = {}): Motion {
   const { min, max } = boundsOf(refs);
-  const margin = opts.margin ?? 80;
+  const margin = opts.margin ?? 50;
   const w = max.x - min.x + margin * 2;
   const h = max.y - min.y + margin * 2;
   const fit = Math.min(STAGE_W / w, STAGE_H / h);
-  const zoom = opts.zoom ?? Math.min(Math.max(fit, 0.7), opts.maxZoom ?? 1.6);
+  const zoom = opts.zoom ?? Math.min(Math.max(fit, 0.7), opts.maxZoom ?? 2.4);
   return cameraTo({ x: (min.x + max.x) / 2, y: (min.y + max.y) / 2 }, zoom, opts.dur ?? 1.1);
 }
 
-/** Pull back to the whole stage. */
-export function resetCam(dur = 1.1): Motion {
-  return cameraTo({ x: STAGE_W / 2, y: STAGE_H / 2 }, 1, dur);
+/**
+ * Pull back to the scene's home framing — its content bounds fit with margin
+ * (computed at compile time). `{ world: true }` pulls back to the literal
+ * full stage instead.
+ */
+export function resetCam(opts: number | { world?: boolean; dur?: number } = {}): Motion {
+  const o = typeof opts === "number" ? { dur: opts } : opts;
+  const dur = o.dur ?? 1.1;
+  if (o.world) return cameraTo({ x: STAGE_W / 2, y: STAGE_H / 2 }, 1, dur);
+  // NaN is a sentinel the compiler resolves to the scene's home camera.
+  return cameraTo({ x: NaN, y: NaN }, NaN, dur);
 }

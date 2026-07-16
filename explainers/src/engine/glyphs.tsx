@@ -15,8 +15,8 @@ export const C = {
   amber: "#fcd34d",
   rose: "#fda4af",
   green: "#86efac",
-  card: "rgba(148,163,184,0.07)",
-  cardEdge: "rgba(148,163,184,0.22)",
+  card: "rgba(148,163,184,0.10)",
+  cardEdge: "rgba(148,163,184,0.30)",
 } as const;
 
 export type AccentName = "cyan" | "blue" | "violet" | "amber" | "rose" | "green" | "ink" | "dim";
@@ -122,6 +122,14 @@ export const glyphs = {
       <path d="M 0 -11 V -7 M 0 11 V 7 M -11 0 H -7 M 11 0 H 7 M -7.8 -7.8 L -5 -5 M 7.8 7.8 L 5 5 M -7.8 7.8 L -5 5 M 7.8 -7.8 L 5 -5" />
     </g>
   ),
+  queue: (c) => (
+    <g stroke={c} strokeWidth={1.6} fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x={-12} y={-3.5} width={7} height={7} rx={1.5} />
+      <rect x={-2.5} y={-3.5} width={7} height={7} rx={1.5} />
+      <rect x={7} y={-3.5} width={7} height={7} rx={1.5} />
+      <path d="M -12 -9 H 14 M -12 9 H 14" opacity={0.55} />
+    </g>
+  ),
   commit: (c) => (
     <g stroke={c} strokeWidth={1.6} fill="none" strokeLinecap="round">
       <circle r={4.5} />
@@ -130,6 +138,13 @@ export const glyphs = {
   ),
 } satisfies Record<string, (color: string) => ReactNode>;
 
+/**
+ * Glyphs are authored on a ~26px box; render them at ~34px so the glyph, not
+ * the empty card, carries the actor. Scaling also thickens the 1.6 stroke
+ * to ~2.1 — the presence bump is one transform.
+ */
+const GLYPH_SCALE = 34 / 26;
+
 export function Glyph({ name, color }: { name?: string; color: string }) {
   if (!name) return null;
   const draw = (glyphs as Record<string, (color: string) => ReactNode>)[name];
@@ -137,5 +152,5 @@ export function Glyph({ name, color }: { name?: string; color: string }) {
     console.warn(`[engine] unknown glyph "${name}"`);
     return null;
   }
-  return <>{draw(color)}</>;
+  return <g transform={`scale(${GLYPH_SCALE})`}>{draw(color)}</g>;
 }

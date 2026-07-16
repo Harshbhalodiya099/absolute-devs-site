@@ -208,16 +208,15 @@ const resolver = scene({
   nextPrompt: "Where does the resolver start?",
   setup: (s) => {
     const { laptop, resolver } = s.cast({
-      laptop:   node({ x: 170, y: 250, glyph: "laptop", label: "Your computer" }),
-      resolver: node({ x: 750, y: 250, glyph: "server", label: "DNS resolver" }),
+      laptop:   v.browser({ ...spot("left"), label: "Your computer" }),
+      resolver: v.server({ ...spot("right"), label: "DNS resolver" }),
     });
     const wire = s.connect(laptop, resolver, { bow: 90, dashed: true });
-    const q = s.packet(wire, { color: "cyan", label: "where is google.com?" });
 
     s.step("The question leaves your machine for the first time.", [
-      stagger(0.3, appear(laptop), appear(resolver)),
+      enter([laptop, resolver], 0.3),
       draw(wire),
-      travel(q, 1.6),
+      wire.send({ color: "cyan", label: "where is google.com?" }),
       pulse(resolver, 2.0),
     ]);
   },
@@ -231,9 +230,9 @@ The safety and geometry properties of this shape:
 - **References are typed handles.** `cast()` returns refs; every primitive
   takes refs. A typo'd actor, glyph, or accent name is a compile error.
 - **Geometry is derived.** `connect()` anchors wires on actor edges (every
-  actor factory records its footprint); `packet()` travels a connection;
-  `route()` makes travel-only paths; `between/below/above/leftOf/rightOf`
-  derive positions from relationships. A story states intent, not arithmetic.
+  actor factory records its footprint) and owns its packets (`send/reply/
+  exchange`); the layout engine (`spot/row/column/grid/radial/inside…`)
+  derives positions from arrangements. A story states intent, not arithmetic.
 - **Interaction is typed re-simulation.** `params: { visit: toggle(...) }`
   gives `setup` a typed `params.visit` with the value union inferred from the
   options. Changing a control re-runs setup, recompiles, replays.
@@ -244,6 +243,58 @@ The safety and geometry properties of this shape:
 Authoring stays TypeScript (not JSON/YAML) on purpose: the type system is the
 story linter, helpers stay composable, comments survive, and layouts can be
 computed. The format *is* declarative data; TS is just the syntax.
+
+## 8a. The v1.0 authoring layers (the stabilization sprint)
+
+Motion primitives alone still left stories doing four kinds of manual work:
+placing coordinates, wiring request/response packets, mapping over fanout
+targets, and re-inventing choreography like "it crashes". v1.0 moved each into
+an engine layer. A story now reads as: *place presets with layout, connect
+them, narrate with verbs.*
+
+**Layout (`layout.ts`).** Stories describe arrangements; the engine derives
+geometry. `spot(name)` / `at(fx, fy)` anchor principals; `row / column /
+grid / radial / stack` arrange groups (grid can fill a region's footprint:
+`grid({ in: cluster, cols: 3, rows: 2 })`); `inside / spread / between /
+below / above / leftOf / rightOf` derive relational positions. A literal
+coordinate in a story marks a one-off, not the norm.
+
+**Semantic connections (`scene.ts`).** A `ConnectionRef` owns its traffic:
+`wire.send(opts)` creates a fresh packet and travels it a→b; `wire.reply()`
+travels b→a on the *mirrored lane* (the engine reflects the curve's control
+point so responses never overlap requests); `wire.exchange()` is
+request-breath-response. `s.send(a, b)` is a one-shot packet with no wire.
+Routes carry their control point and length (`RouteRef.c`, `.len`), which is
+what makes reversal, mirroring, and auto-pacing engine responsibilities.
+
+**Fanout (`scene.ts`).** `s.fanout(hub, targets, opts)` models one-to-many
+(Service→Pods, Router→Experts, Bundle→CDN). The fan spreads bows
+symmetrically so wires never coincide, and exposes `draw` (cascading wires),
+`send` (broadcast), `gather` (targets→hub — responses, votes), `pulse`, and
+`wires[i]` for per-lane control. `virtual: true` gives routes without visible
+wires.
+
+**Semantic verbs (`verbs.ts`).** Named system events compose the low-level
+primitives: `crash` (wobble, lights out, faint ghost), `revive`, `enter` /
+`exit` (cascaded group entrances). The architectural rule: a verb is a pure
+function returning a Motion — growing the vocabulary (electLeader, replicate,
+cacheMiss…) never adds channels or renderer concepts.
+
+**Visual vocabulary (`presets.ts`).** The same concept looks the same in every
+story: `v.pod`, `v.database`, `v.users`, `v.server`, `v.cache`,
+`v.loadBalancer`, `v.controller`, `v.queue`, `v.worker`, `v.browser` — fixed
+glyph/accent plus a default note, with copy overridable. `definePreset()`
+creates story-local presets for domain concepts ("expert", "broker"). The
+namespace `v` exists so preset names never shadow a story's cast variables.
+
+**Automatic direction (opt-in, overridable).** `travel` and `draw` derive
+their default duration from the path's length, so far things take longer than
+near things without the author pacing them. `s.step(…, { view: [refs] })`
+frames those actors while the step plays (`view: "all"` pulls back);
+`s.spotlight(...keep)` dims everything else on stage (packets exempt), and
+`s.clearSpotlight()` lifts it. Explicit durations, `focus`, `frame`, and
+manual `dim` remain available everywhere — intelligence defaults, manual
+direction always wins.
 
 ## 8b. Validation
 
