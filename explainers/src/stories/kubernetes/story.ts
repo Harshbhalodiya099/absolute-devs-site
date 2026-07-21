@@ -240,8 +240,8 @@ const anatomy = scene({
       nodes: region({ x: 838, y: 268, w: 190, h: 430, title: "Worker nodes — the muscle", accent: "dim" }),
     });
 
-    const [n1, n2] = column({ at: { x: 838, y: 300 }, count: 2, gap: 184 });
-    const { node1, node2, podCard, placed } = s.cast({
+    const [n1, n2] = column({ at: { x: 838, y: 320 }, count: 2, gap: 180 });
+    const { node1, node2, podCard } = s.cast({
       node1: v.server({
         ...n1,
         label: "Node 1",
@@ -255,7 +255,10 @@ const anatomy = scene({
         note: "Another worker. Identical role. The scheduler chose Node 1 for this pod, so Node 2 sits this one out.",
       }),
       podCard: v.pod({ x: 838, y: 92, sub: "your-app" }),
-      placed: token({ x: 838, y: 134, text: "container started ✓", accent: "green" }),
+    });
+    // `placed` anchors to podCard's footprint, so it must be cast after it.
+    const { placed } = s.cast({
+      placed: token({ ...below(podCard, 18), text: "container started ✓", accent: "green" }),
     });
 
     const wApi = s.connect(kubectl, api, { bow: 20, dashed: true });

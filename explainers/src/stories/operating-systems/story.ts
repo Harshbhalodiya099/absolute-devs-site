@@ -7,6 +7,7 @@
  * enforces the brief's #1 misconception kill: the OS is NOT always running.
  */
 import {
+  above,
   all,
   appear,
   below,
@@ -84,11 +85,11 @@ const cooperativeCrash = scene({
       pA: process({ x: 170, y: 370, label: "Text editor", accent: "blue" }),
       pB: process({ x: 440, y: 370, label: "Spreadsheet", accent: "green" }),
       pC: process({ x: 710, y: 370, label: "Email", accent: "violet" }),
-      greedy: process({ x: 440, y: 170, label: "Buggy app", sub: "while(true) {}", accent: "rose" }),
+      greedy: process({ ...above(cpu, 46), label: "Buggy app", sub: "while(true) {}", accent: "rose" }),
     });
     const { taking, frozen, fix } = s.cast({
-      taking: token({ x: 480, y: 100, text: "cooperative: each program yields voluntarily", accent: "dim" }),
-      frozen: token({ x: 480, y: 100, text: "the machine is frozen — no mechanism to stop it", accent: "rose" }),
+      taking: token({ x: 480, y: 58, text: "cooperative: each program yields voluntarily", accent: "dim" }),
+      frozen: token({ x: 480, y: 58, text: "the machine is frozen — no mechanism to stop it", accent: "rose" }),
       fix: token({ x: 480, y: 460, text: "the fix: a hardware timer that takes control back by force", accent: "green" }),
     });
 

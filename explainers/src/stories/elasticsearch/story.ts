@@ -8,6 +8,7 @@
  * and query-path speed should be FELT through animation pacing.
  */
 import {
+  above,
   all,
   appear,
   crash,
@@ -360,7 +361,7 @@ const theCluster = scene({
 
     if (p.failure === "healthy") {
       const { scatter, result } = s.cast({
-        scatter: token({ x: 480, y: 120, text: "query scatters to all shards, results merge at coordinator", accent: "cyan" }),
+        scatter: token({ ...above(coord, 26), text: "query scatters to all shards, results merge at coordinator", accent: "cyan" }),
         result: token({ x: 480, y: 450, text: "3 shards, 3 replicas — split for scale, copied for safety", accent: "green" }),
       });
 
