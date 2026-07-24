@@ -8,3 +8,6 @@ node_modules/
 
 # Cloudflare local state
 .wrangler/
+
+# Local Claude Code project config (machine-specific absolute paths)
+/.claude/
