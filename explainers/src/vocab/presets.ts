@@ -7,12 +7,17 @@
  * A story-local concept that repeats ("expert", "broker") deserves its own
  * definePreset() at the top of the story file; a concept that repeats across
  * stories deserves an entry here.
+ *
+ * A preset binds a glyph + accent + copy into an animation ActorSpec via the
+ * engine's `node` factory. That is the one back-import into engine/ from vocab/;
+ * it stays until a non-animation mode (e.g. Simulation) needs an engine-free
+ * preset shape, at which point the identity and the ActorSpec projection split.
  */
-import { node } from "./actors";
-import type { ActorSpec, Point } from "./types";
+import { node } from "../engine/actors";
+import type { ActorSpec, Point } from "../engine/types";
 
 type NodeArgs = Parameters<typeof node>[0];
-type PresetDefaults = Omit<NodeArgs, "x" | "y"> ;
+type PresetDefaults = Omit<NodeArgs, "x" | "y">;
 type PresetOverrides = Partial<Omit<NodeArgs, "x" | "y">>;
 
 /** A node factory with a fixed visual identity and overridable copy. */

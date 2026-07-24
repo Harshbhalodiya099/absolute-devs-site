@@ -67,6 +67,176 @@ body {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Search bar                                                          */
+/* ------------------------------------------------------------------ */
+
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 14px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.search-wrapper:focus-within {
+  border-color: rgba(94, 234, 212, 0.35);
+  box-shadow: 0 0 0 3px rgba(94, 234, 212, 0.08), 0 8px 32px -12px rgba(0, 0, 0, 0.4);
+}
+
+.search-icon {
+  color: #64748b;
+  flex-shrink: 0;
+  transition: color 0.3s ease;
+}
+
+.search-wrapper:focus-within .search-icon {
+  color: #5eead4;
+}
+
+.search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #e8ecf4;
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.search-input::placeholder {
+  color: #475569;
+}
+
+.search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.search-clear:hover {
+  background: rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Category filter pills                                               */
+/* ------------------------------------------------------------------ */
+
+.category-pills {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.category-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(15, 19, 32, 0.5);
+  color: #94a3b8;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.category-pill:hover {
+  border-color: rgba(148, 163, 184, 0.28);
+  background: rgba(30, 38, 60, 0.6);
+  color: #cbd5e1;
+}
+
+.category-pill.active {
+  border-color: rgba(94, 234, 212, 0.4);
+  background: rgba(94, 234, 212, 0.08);
+  color: #5eead4;
+  box-shadow: 0 0 12px -4px rgba(94, 234, 212, 0.2);
+}
+
+.category-pill-icon {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.category-pill-count {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.1);
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.category-pill.active .category-pill-count {
+  background: rgba(94, 234, 212, 0.15);
+  color: #5eead4;
+}
+
+/* ------------------------------------------------------------------ */
+/* Section headers                                                     */
+/* ------------------------------------------------------------------ */
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.section-header-line {
+  flex: 0 0 3px;
+  width: 3px;
+  height: 1.5rem;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #5eead4, #7dd3fc);
+  opacity: 0.7;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  letter-spacing: 0.01em;
+}
+
+.section-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.section-count {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #475569;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ */
+/* Timeline scrubber                                                   */
+/* ------------------------------------------------------------------ */
+
 /* the timeline scrubber's native input stays invisible until keyboard focus */
 .scrubber::-webkit-slider-thumb {
   appearance: none;

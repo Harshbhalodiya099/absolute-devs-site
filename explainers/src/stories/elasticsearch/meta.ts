@@ -2,6 +2,7 @@ import { defineMeta } from "../../engine";
 
 export const meta = defineMeta({
   slug: "elasticsearch",
+  category: "databases-search",
   title: "How Elasticsearch finds your needle in a billion documents",
   intro: {
     eyebrow: "An interactive explainer",

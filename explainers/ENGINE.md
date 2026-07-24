@@ -280,7 +280,11 @@ primitives: `crash` (wobble, lights out, faint ghost), `revive`, `enter` /
 function returning a Motion — growing the vocabulary (electLeader, replicate,
 cacheMiss…) never adds channels or renderer concepts.
 
-**Visual vocabulary (`presets.ts`).** The same concept looks the same in every
+**Visual vocabulary (`src/vocab/`).** Extracted out of the engine so future
+modes (simulation, assessment) can share the same look without importing the
+animation engine — `accents.ts` (colours), `glyphs.tsx` (SVG), `presets.ts`
+(named entities). The engine imports them back through `engine/index.ts`, so
+stories are unaffected. The same concept looks the same in every
 story: `v.pod`, `v.database`, `v.users`, `v.server`, `v.cache`,
 `v.loadBalancer`, `v.controller`, `v.queue`, `v.worker`, `v.browser` — fixed
 glyph/accent plus a default note, with copy overridable. `definePreset()`

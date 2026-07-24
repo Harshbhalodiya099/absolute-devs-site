@@ -6,43 +6,14 @@
  * relationships own their packets (send/reply), fanouts own their wiring, and
  * semantic verbs (crash, enter) replace hand-built choreography.
  */
-import {
-  all,
-  appear,
-  below,
-  bubble,
-  column,
-  crash,
-  defineStory,
-  dim,
-  draw,
-  enter,
-  fadeTo,
-  flash,
-  frame,
-  glowOn,
-  grid,
-  label,
-  pulse,
-  region,
-  resetCam,
-  scene,
-  seq,
-  shake,
-  spot,
-  stagger,
-  toggle,
-  token,
-  v,
-  wait,
-} from "../../engine";
+import { E } from "../../engine";
 import { meta } from "./meta";
 
 /* ============================================================
    Scene 1 — one server, nobody watching (the pain)
    ============================================================ */
 
-const oneServer = scene({
+const oneServer = E.scene({
   id: "one-server",
   chapter: "The problem",
   question: "What happens when the thing running your app just… stops?",
@@ -57,12 +28,12 @@ const oneServer = scene({
   ],
   setup: (s) => {
     const { users, app } = s.cast({
-      users: v.users({
-        ...spot("left"),
+      users: E.v.users({
+        ...E.spot("left"),
         sub: "just want the page",
         note: "Real people hitting your app. They don't know or care how many servers you run — only whether the page loads.",
       }),
-      app: v.pod({
+      app: E.v.pod({
         x: 680,
         y: 262,
         label: "your-app",
@@ -73,30 +44,30 @@ const oneServer = scene({
     });
 
     const { clock, err, downSays } = s.cast({
-      clock: label({ x: 680, y: 110, text: "03:00", size: 26, color: "amber" }),
-      err: token({ ...below(app, 66), text: "503 · no healthy backend", accent: "rose" }),
-      downSays: bubble({ ...below(users, 84), w: 210, lines: ["“Is the site down?”"], accent: "blue" }),
+      clock: E.label({ x: 680, y: 110, text: "03:00", size: 26, color: "amber" }),
+      err: E.token({ ...E.below(app, 66), text: "503 · no healthy backend", accent: "rose" }),
+      downSays: E.bubble({ ...E.below(users, 84), w: 210, lines: ["“Is the site down?”"], accent: "blue" }),
     });
 
     const link = s.connect(users, app, { bow: 40, dashed: true });
 
     s.step("For months this is enough: a request arrives, the one container answers, everyone goes home happy.", [
-      enter([users, app], 0.25),
-      draw(link),
-      all(pulse(app, 3.2), seq(link.send({ label: "GET /", dur: 1.1 }), wait(0.2), link.send({ label: "GET /", dur: 1.1 }))),
+      E.enter([users, app], 0.25),
+      E.draw(link),
+      E.all(E.pulse(app, 3.2), E.seq(link.send({ label: "GET /", dur: 1.1 }), E.wait(0.2), link.send({ label: "GET /", dur: 1.1 }))),
     ]);
 
     s.step("Then, one night, it crashes — a memory leak, a bad deploy, a kernel hiccup. Which one hardly matters.", [
-      appear(clock),
-      crash(app),
+      E.appear(clock),
+      E.crash(app),
     ]);
 
     s.step(
       "Nothing is watching. The next request finds an empty room — and it stays that way until a human wakes up.",
       [
         link.send({ color: "rose", label: "GET /", dur: 1.3, keepAlive: true }),
-        all(appear(err), seq(wait(0.3), appear(downSays))),
-        wait(1.4),
+        E.all(E.appear(err), E.seq(E.wait(0.3), E.appear(downSays))),
+        E.wait(1.4),
       ],
       { hold: 1.2 },
     );
@@ -107,7 +78,7 @@ const oneServer = scene({
    Scene 2 — the control loop (the one big idea)
    ============================================================ */
 
-const controlLoop = scene({
+const controlLoop = E.scene({
   id: "control-loop",
   chapter: "The one big idea",
   question: "What if the fix wasn't a person, but a loop?",
@@ -122,13 +93,13 @@ const controlLoop = scene({
   ],
   setup: (s) => {
     const { ctl, field } = s.cast({
-      ctl: v.controller({
+      ctl: E.v.controller({
         x: 185,
         y: 262,
         sub: "desired: 3 replicas",
         note: "A controller is a small program running one endless loop: read the desired state, look at the actual state, and take the smallest action that moves reality toward the wish.",
       }),
-      field: region({
+      field: E.region({
         x: 655,
         y: 262,
         w: 300,
@@ -139,49 +110,49 @@ const controlLoop = scene({
       }),
     });
 
-    const [top, mid, bot] = grid({ in: field, cols: 1, rows: 3, pad: 70 });
+    const [top, mid, bot] = E.grid({ in: field, cols: 1, rows: 3, pad: 70 });
     const { p1, p2, p3, p2b, matchTok, gapTok, healTok } = s.cast({
-      p1: v.pod({ ...top, sub: "your-app" }),
-      p2: v.pod({ ...mid, sub: "your-app" }),
-      p3: v.pod({ ...bot, sub: "your-app" }),
-      p2b: v.pod({ ...mid, sub: "your-app" }),
-      matchTok: token({ ...below(ctl, 88), text: "desired 3 = running 3 ✓", accent: "green" }),
-      gapTok: token({ ...below(ctl, 88), text: "running 2 — gap!", accent: "rose" }),
-      healTok: token({ ...below(ctl, 88), text: "reconciled → 3 ✓", accent: "green" }),
+      p1: E.v.pod({ ...top, sub: "your-app" }),
+      p2: E.v.pod({ ...mid, sub: "your-app" }),
+      p3: E.v.pod({ ...bot, sub: "your-app" }),
+      p2b: E.v.pod({ ...mid, sub: "your-app" }),
+      matchTok: E.token({ ...E.below(ctl, 88), text: "desired 3 = running 3 ✓", accent: "green" }),
+      gapTok: E.token({ ...E.below(ctl, 88), text: "running 2 — gap!", accent: "rose" }),
+      healTok: E.token({ ...E.below(ctl, 88), text: "reconciled → 3 ✓", accent: "green" }),
     });
 
     const fan = s.fanout(ctl, [p1, p2, p3], { dashed: true, bowSpread: 60 });
 
     s.step("You declare a wish, not a procedure: three copies of this app, always. The controller writes it down.", [
-      appear(ctl),
-      appear(field),
-      enter([p1, p2, p3], 0.2),
+      E.appear(ctl),
+      E.appear(field),
+      E.enter([p1, p2, p3], 0.2),
       fan.draw({ gap: 0.15, dur: 0.5 }),
     ]);
 
     s.step("Its entire job is to compare the wish to reality. Three wanted, three running — a match. So it does nothing, happily.", [
-      all(pulse(ctl, 2.4), stagger(0.15, flash(p1), flash(p2), flash(p3))),
-      seq(wait(0.4), appear(matchTok)),
-      wait(0.6),
+      E.all(E.pulse(ctl, 2.4), E.stagger(0.15, E.flash(p1), E.flash(p2), E.flash(p3))),
+      E.seq(E.wait(0.4), E.appear(matchTok)),
+      E.wait(0.6),
     ]);
 
     s.step("Now kill one — a node reboots, a pod runs out of memory. Reality drifts: three wanted, two running.", [
-      fadeTo(matchTok, 0, 0.3),
-      crash(p2, { remains: 0 }),
-      fadeTo(fan.wires[1], 0.15, 0.5),
-      appear(gapTok),
-      wait(0.6),
+      E.fadeTo(matchTok, 0, 0.3),
+      E.crash(p2, { remains: 0 }),
+      E.fadeTo(fan.wires[1], 0.15, 0.5),
+      E.appear(gapTok),
+      E.wait(0.6),
     ]);
 
     s.step(
       "The gap is all it needs. It schedules a fresh pod into the hole, and the count is three again — no human, no pager.",
       [
-        pulse(ctl, 3.0),
-        fadeTo(gapTok, 0, 0.3),
+        E.pulse(ctl, 3.0),
+        E.fadeTo(gapTok, 0, 0.3),
         s.send(ctl, p2b, { color: "violet", label: "start a replacement", bow: 0, dur: 1.3 }),
-        appear(p2b),
-        all(glowOn(p2b), appear(healTok)),
-        wait(1.2),
+        E.appear(p2b),
+        E.all(E.glowOn(p2b), E.appear(healTok)),
+        E.wait(1.2),
       ],
       { hold: 1.2 },
     );
@@ -192,7 +163,7 @@ const controlLoop = scene({
    Scene 3 — anatomy: what a single "apply" sets in motion
    ============================================================ */
 
-const anatomy = scene({
+const anatomy = E.scene({
   id: "anatomy",
   chapter: "Under the hood",
   question: "So who runs the loop — and where does it all live?",
@@ -207,15 +178,15 @@ const anatomy = scene({
   ],
   setup: (s) => {
     const { kubectl, plane, api, etcd, sched, nodes } = s.cast({
-      kubectl: v.browser({
+      kubectl: E.v.browser({
         x: 118,
         y: 118,
         label: "kubectl apply",
         sub: "you, asking",
         note: "The command line. It doesn't run anything itself — it just sends your desired state to the one endpoint that accepts changes.",
       }),
-      plane: region({ x: 470, y: 268, w: 540, h: 430, title: "Control plane — the brain", accent: "dim" }),
-      api: v.server({
+      plane: E.region({ x: 470, y: 268, w: 540, h: 430, title: "Control plane — the brain", accent: "dim" }),
+      api: E.v.server({
         x: 355,
         y: 148,
         label: "API server",
@@ -223,42 +194,42 @@ const anatomy = scene({
         accent: "blue",
         note: "Every read and write goes through here. It validates the request and persists it — but it does not act on it. It just records intent.",
       }),
-      etcd: v.database({
+      etcd: E.v.database({
         x: 355,
         y: 392,
         label: "etcd",
         sub: "the cluster's memory",
         note: "A distributed, consistent key-value store. It holds the single source of truth for the entire cluster. Lose etcd and you lose the cluster's mind.",
       }),
-      sched: v.controller({
+      sched: E.v.controller({
         x: 610,
         y: 148,
         label: "Scheduler",
         sub: "the matchmaker",
         note: "Watches for pods with no assigned node, scores every node by free CPU, memory, affinity and constraints, and binds each pod to the best fit.",
       }),
-      nodes: region({ x: 838, y: 268, w: 190, h: 430, title: "Worker nodes — the muscle", accent: "dim" }),
+      nodes: E.region({ x: 838, y: 268, w: 190, h: 430, title: "Worker nodes — the muscle", accent: "dim" }),
     });
 
-    const [n1, n2] = column({ at: { x: 838, y: 320 }, count: 2, gap: 180 });
+    const [n1, n2] = E.column({ at: { x: 838, y: 320 }, count: 2, gap: 180 });
     const { node1, node2, podCard } = s.cast({
-      node1: v.server({
+      node1: E.v.server({
         ...n1,
         label: "Node 1",
         sub: "kubelet",
         note: "A worker machine. Its kubelet watches the API server for pods assigned to it, then tells the container runtime to actually start them.",
       }),
-      node2: v.server({
+      node2: E.v.server({
         ...n2,
         label: "Node 2",
         sub: "kubelet",
         note: "Another worker. Identical role. The scheduler chose Node 1 for this pod, so Node 2 sits this one out.",
       }),
-      podCard: v.pod({ x: 838, y: 92, sub: "your-app" }),
+      podCard: E.v.pod({ x: 838, y: 92, sub: "your-app" }),
     });
     // `placed` anchors to podCard's footprint, so it must be cast after it.
     const { placed } = s.cast({
-      placed: token({ ...below(podCard, 18), text: "container started ✓", accent: "green" }),
+      placed: E.token({ ...E.below(podCard, 18), text: "container started ✓", accent: "green" }),
     });
 
     const wApi = s.connect(kubectl, api, { bow: 20, dashed: true });
@@ -267,37 +238,37 @@ const anatomy = scene({
     const scoring = s.fanout(sched, [node1, node2], { virtual: true, color: "violet", bowSpread: 60 });
 
     s.step("Every change enters through exactly one door — the API server. `kubectl apply` hands it your desired state.", [
-      appear(plane),
-      all(appear(kubectl), appear(api)),
-      frame([kubectl, api, etcd], { margin: 90 }),
-      draw(wApi, 0.6),
+      E.appear(plane),
+      E.all(E.appear(kubectl), E.appear(api)),
+      E.frame([kubectl, api, etcd], { margin: 90 }),
+      E.draw(wApi, 0.6),
       wApi.send({ label: "run this pod", dur: 1.3 }),
-      pulse(api, 1.8),
+      E.pulse(api, 1.8),
     ]);
 
     s.step(
       "The API server doesn't act on it. It writes it to etcd — the cluster's single source of truth. If it isn't in etcd, it never happened.",
-      [appear(etcd), draw(wStore, 0.5), wStore.send({ color: "amber", label: "write desired state", dur: 1.2 }), flash(etcd), wait(0.6)],
+      [E.appear(etcd), E.draw(wStore, 0.5), wStore.send({ color: "amber", label: "write desired state", dur: 1.2 }), E.flash(etcd), E.wait(0.6)],
     );
 
     s.step("The new pod has no home yet. The scheduler watches for homeless pods, scores each node, and picks the best fit.", [
-      resetCam(),
-      all(appear(sched), appear(nodes), enter([node1, node2], 0.2)),
-      pulse(sched, 3.0),
-      seq(wait(0.3), scoring.send({ label: "score", gap: 0, dur: 0.9 })),
+      E.resetCam(),
+      E.all(E.appear(sched), E.appear(nodes), E.enter([node1, node2], 0.2)),
+      E.pulse(sched, 3.0),
+      E.seq(E.wait(0.3), scoring.send({ label: "score", gap: 0, dur: 0.9 })),
       s.send(sched, api, { color: "violet", label: "bind → Node 1", bow: 60, dur: 1.1 }),
-      pulse(api, 1.4),
+      E.pulse(api, 1.4),
     ]);
 
     s.step(
       "On the winning node, the kubelet sees the assignment and actually starts the container. The wish is finally a running thing.",
       [
-        frame([api, node1, podCard], { margin: 90 }),
-        draw(wNode, 0.5),
+        E.frame([api, node1, podCard], { margin: 90 }),
+        E.draw(wNode, 0.5),
         wNode.send({ color: "green", label: "kubelet: start it", dur: 1.2 }),
-        appear(podCard),
-        all(glowOn(podCard), appear(placed), pulse(node1, 2.0)),
-        wait(1.2),
+        E.appear(podCard),
+        E.all(E.glowOn(podCard), E.appear(placed), E.pulse(node1, 2.0)),
+        E.wait(1.2),
       ],
       { hold: 1.2 },
     );
@@ -308,7 +279,7 @@ const anatomy = scene({
    Scene 4 — interactive: a whole machine dies, users don't notice
    ============================================================ */
 
-const selfHealing = scene({
+const selfHealing = E.scene({
   id: "self-healing",
   chapter: "Why it feels like magic",
   question: "A whole machine just died. Why didn't your users notice?",
@@ -322,7 +293,7 @@ const selfHealing = scene({
     "The figure below is interactive. It starts healthy: one Service spreading traffic across four pods on two nodes. Then flip the toggle and kill an entire node. Watch the Service quietly drop the dead pods, keep serving from the survivors, and pick up the rescheduled replacements — all behind the same address, with your users none the wiser.",
   ],
   params: {
-    state: toggle("Cluster", [
+    state: E.toggle("Cluster", [
       ["healthy", "Healthy"],
       ["failure", "Node fails"],
     ]),
@@ -331,13 +302,13 @@ const selfHealing = scene({
     const failing = p.state === "failure";
 
     const { users, svc } = s.cast({
-      users: v.users({
+      users: E.v.users({
         x: 112,
         y: 262,
         visible: true,
         note: "They only ever know one address — the Service's. What runs behind it is invisible to them, by design.",
       }),
-      svc: v.loadBalancer({
+      svc: E.v.loadBalancer({
         x: 342,
         y: 262,
         label: "Service",
@@ -350,50 +321,50 @@ const selfHealing = scene({
     const toUsers = s.connect(users, svc, { bow: 0, dashed: true });
 
     if (!failing) {
-      const slots = column({ at: { x: 842, y: 270 }, count: 4, gap: 116 });
+      const slots = E.column({ at: { x: 842, y: 270 }, count: 4, gap: 116 });
       const { a1, a2, b1, b2 } = s.cast({
-        node1: v.server({ x: 632, y: 148, label: "Node 1", visible: true }),
-        node2: v.server({ x: 632, y: 392, label: "Node 2", visible: true }),
-        a1: v.pod({ ...slots[0], sub: "your-app" }),
-        a2: v.pod({ ...slots[1], sub: "your-app" }),
-        b1: v.pod({ ...slots[2], sub: "your-app" }),
-        b2: v.pod({ ...slots[3], sub: "your-app" }),
+        node1: E.v.server({ x: 632, y: 148, label: "Node 1", visible: true }),
+        node2: E.v.server({ x: 632, y: 392, label: "Node 2", visible: true }),
+        a1: E.v.pod({ ...slots[0], sub: "your-app" }),
+        a2: E.v.pod({ ...slots[1], sub: "your-app" }),
+        b1: E.v.pod({ ...slots[2], sub: "your-app" }),
+        b2: E.v.pod({ ...slots[3], sub: "your-app" }),
       });
 
       const pods = [a1, a2, b1, b2];
       const fan = s.fanout(svc, pods, { dashed: true });
 
       s.step("Behind one Service address sit four pods across two nodes. The Service is the only thing your users ever talk to.", [
-        enter(pods, 0.12),
-        draw(toUsers, 0.4),
+        E.enter(pods, 0.12),
+        E.draw(toUsers, 0.4),
         fan.draw({ gap: 0.1, dur: 0.4 }),
       ]);
 
       s.step(
         "Every request hits the Service, which spreads it across whatever healthy pods exist right now.",
-        [toUsers.send({ label: "GET /", dur: 0.8 }), fan.send({ color: "cyan", gap: 0.18, dur: 0.8 }), fan.pulse(1.8), wait(1.0)],
+        [toUsers.send({ label: "GET /", dur: 0.8 }), fan.send({ color: "cyan", gap: 0.18, dur: 0.8 }), fan.pulse(1.8), E.wait(1.0)],
         { hold: 1.0 },
       );
       return;
     }
 
     /* failure branch: node 2 dies; its pods reschedule onto node 1 */
-    const [sA, sB] = column({ at: { x: 842, y: 137 }, count: 2, gap: 106 });
-    const [dA, dB] = column({ at: { x: 842, y: 392 }, count: 2, gap: 112 });
-    const [rA, rB] = column({ at: { x: 842, y: 352 }, count: 2, gap: 112 });
+    const [sA, sB] = E.column({ at: { x: 842, y: 137 }, count: 2, gap: 106 });
+    const [dA, dB] = E.column({ at: { x: 842, y: 392 }, count: 2, gap: 112 });
+    const [rA, rB] = E.column({ at: { x: 842, y: 352 }, count: 2, gap: 112 });
 
     const { node1, node2, a1, a2, dead1, dead2, r1, r2 } = s.cast({
-      node1: v.server({ x: 632, y: 150, label: "Node 1", visible: true }),
-      node2: v.server({ x: 632, y: 396, label: "Node 2", sub: "dead", visible: true }),
-      a1: v.pod({ ...sA, sub: "your-app" }),
-      a2: v.pod({ ...sB, sub: "your-app" }),
-      dead1: v.pod({ ...dA, sub: "your-app" }),
-      dead2: v.pod({ ...dB, sub: "your-app" }),
-      r1: v.pod({ ...rA, sub: "your-app" }),
-      r2: v.pod({ ...rB, sub: "your-app" }),
+      node1: E.v.server({ x: 632, y: 150, label: "Node 1", visible: true }),
+      node2: E.v.server({ x: 632, y: 396, label: "Node 2", sub: "dead", visible: true }),
+      a1: E.v.pod({ ...sA, sub: "your-app" }),
+      a2: E.v.pod({ ...sB, sub: "your-app" }),
+      dead1: E.v.pod({ ...dA, sub: "your-app" }),
+      dead2: E.v.pod({ ...dB, sub: "your-app" }),
+      r1: E.v.pod({ ...rA, sub: "your-app" }),
+      r2: E.v.pod({ ...rB, sub: "your-app" }),
     });
     const { downTok } = s.cast({
-      downTok: token({ ...below(node2, 12), text: "Node 2 lost", accent: "rose" }),
+      downTok: E.token({ ...E.below(node2, 12), text: "Node 2 lost", accent: "rose" }),
     });
 
     const survivors = s.fanout(svc, [a1, a2], { dashed: true, bowSpread: 40 });
@@ -401,28 +372,28 @@ const selfHealing = scene({
     const fresh = s.fanout(svc, [r1, r2], { virtual: true });
 
     s.step("Same cluster, now under stress. Then Node 2 dies outright — power, kernel, hardware — and both of its pods vanish with it.", [
-      enter([a1, a2, dead1, dead2], 0.1),
-      draw(toUsers, 0.4),
+      E.enter([a1, a2, dead1, dead2], 0.1),
+      E.draw(toUsers, 0.4),
       survivors.draw({ gap: 0.1, dur: 0.4 }),
-      wait(0.3),
-      shake(node2),
-      wait(0.5),
-      all(dim(node2), fadeTo(dead1, 0, 0.5), fadeTo(dead2, 0, 0.5), appear(downTok)),
+      E.wait(0.3),
+      E.shake(node2),
+      E.wait(0.5),
+      E.all(E.dim(node2), E.fadeTo(dead1, 0, 0.5), E.fadeTo(dead2, 0, 0.5), E.appear(downTok)),
     ]);
 
     s.step("The Service simply stops routing to the dead pods and keeps serving from the survivors. Your users see nothing.", [
       toUsers.send({ label: "GET /", dur: 0.7 }),
       survivors.send({ color: "cyan", gap: 0.2, dur: 0.8 }),
       survivors.pulse(1.8),
-      wait(0.8),
+      E.wait(0.8),
     ]);
 
     s.step("Meanwhile the controller notices two pods missing and reschedules them — here, onto Node 1. New pods, new IPs.", [
-      pulse(node1, 3.0),
+      E.pulse(node1, 3.0),
       rescue.draw({ gap: 0.15, dur: 0.4 }),
       rescue.send({ color: "violet", label: "reschedule", gap: 0.2, dur: 0.9 }),
-      enter([r1, r2], 0.15),
-      all(glowOn(r1), glowOn(r2)),
+      E.enter([r1, r2], 0.15),
+      E.all(E.glowOn(r1), E.glowOn(r2)),
     ]);
 
     s.step(
@@ -430,8 +401,8 @@ const selfHealing = scene({
       [
         toUsers.send({ label: "GET /", dur: 0.7 }),
         fresh.send({ color: "cyan", gap: 0.18, dur: 0.8 }),
-        all(fresh.pulse(1.8), glowOn(svc)),
-        wait(1.2),
+        E.all(fresh.pulse(1.8), E.glowOn(svc)),
+        E.wait(1.2),
       ],
       { hold: 1.2 },
     );
@@ -440,7 +411,7 @@ const selfHealing = scene({
 
 /* ============================================================ */
 
-export default defineStory({
+export default E.story({
   ...meta,
   scenes: [oneServer, controlLoop, anatomy, selfHealing],
   outro: [

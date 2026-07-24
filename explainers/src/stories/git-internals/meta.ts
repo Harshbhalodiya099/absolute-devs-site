@@ -2,6 +2,7 @@ import { defineMeta } from "../../engine";
 
 export const meta = defineMeta({
   slug: "git-internals",
+  category: "dev-tools",
   title: "How Git actually stores your work",
   intro: {
     eyebrow: "An interactive explainer",

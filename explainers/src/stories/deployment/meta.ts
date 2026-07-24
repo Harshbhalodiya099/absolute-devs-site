@@ -2,6 +2,7 @@ import { defineMeta } from "../../engine";
 
 export const meta = defineMeta({
   slug: "deployment",
+  category: "deployment-cloud",
   title: "Where your code actually runs",
   intro: {
     eyebrow: "An interactive explainer",

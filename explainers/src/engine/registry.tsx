@@ -1,6 +1,6 @@
 import { motion, useTransform, type MotionValue } from "motion/react";
 import type { FC } from "react";
-import { C, Glyph, accent } from "./glyphs";
+import { C, Glyph, accent } from "../vocab";
 import type { ActorSpec, Box } from "./types";
 
 /**

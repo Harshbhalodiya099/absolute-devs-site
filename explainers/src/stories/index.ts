@@ -17,3 +17,11 @@ export async function loadStory(slug: string): Promise<StoryDef | null> {
   const load = storyModules[`./${slug}/story.ts`];
   return load ? (await load()).default : null;
 }
+
+/* ---- the "get an explainer" endpoint, in plain verbs ---- */
+
+/** Every explainer in the library (metadata only — no scenes loaded). */
+export const listExplainers = (): StoryMeta[] => library;
+
+/** One explainer's full scenes by slug, or null if there's no such story. */
+export const getExplainer = (slug: string): Promise<StoryDef | null> => loadStory(slug);

@@ -2,6 +2,7 @@ import { defineMeta } from "../../engine";
 
 export const meta = defineMeta({
   slug: "mixture-of-experts",
+  category: "ai-ml",
   title: "How mixture of experts makes giant models affordable",
   intro: {
     eyebrow: "An interactive explainer",

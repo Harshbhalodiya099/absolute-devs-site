@@ -15,7 +15,7 @@ const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1];
  * then it plays; still fully scrubbable, steppable, and interactive.
  * Topic-agnostic, like StoryShell: everything comes from the story data.
  */
-export function ArticleShell({ story }: { story: StoryDef }) {
+export function ArticleShell({ story, quizHref }: { story: StoryDef; quizHref?: string }) {
   return (
     <MotionConfig reducedMotion="user">
       <article className="mx-auto w-full max-w-[46rem] px-6 pt-16 pb-24 sm:pt-24">
@@ -48,7 +48,7 @@ export function ArticleShell({ story }: { story: StoryDef }) {
         ))}
 
         {/* outro + go deeper */}
-        {story.outro?.length || story.references?.length ? (
+        {story.outro?.length || story.references?.length || quizHref ? (
           <footer className="mt-16">
             <div className="mb-10 h-px w-full bg-gradient-to-r from-slate-700/70 via-slate-800 to-transparent" />
             {(story.outro ?? []).map((p, i) => (
@@ -77,6 +77,23 @@ export function ArticleShell({ story }: { story: StoryDef }) {
                     </li>
                   ))}
                 </ul>
+              </section>
+            ) : null}
+            {quizHref ? (
+              <section className="glass mt-12 flex flex-col items-center gap-3 rounded-2xl px-6 py-8 text-center">
+                <p className="text-[11px] font-semibold tracking-[0.2em] text-teal-300/80 uppercase">
+                  Finished reading?
+                </p>
+                <p className="max-w-md text-pretty text-sm leading-relaxed text-slate-400">
+                  Now check your understanding — a few quick questions, with explanations that go a little further
+                  than the essay did.
+                </p>
+                <a
+                  href={quizHref}
+                  className="mt-1 cursor-pointer rounded-full bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-[0_0_24px_rgba(94,234,212,0.15)] transition-all hover:bg-white hover:shadow-[0_0_32px_rgba(94,234,212,0.3)]"
+                >
+                  Check your understanding →
+                </a>
               </section>
             ) : null}
             <p className="mt-10 text-center text-slate-600" aria-hidden>

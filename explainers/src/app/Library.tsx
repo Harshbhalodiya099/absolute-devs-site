@@ -1,6 +1,8 @@
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
+import { useState, useMemo } from "react";
 import type { CSSProperties, FC } from "react";
 import { library } from "../stories";
+import type { StoryCategory } from "../engine";
 
 const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -245,11 +247,106 @@ const FLAIR: Record<string, { accent: string; Motif: Motif }> = {
 const DEFAULT_FLAIR = { accent: "#7dd3fc", Motif: DefaultMotif };
 
 /* ------------------------------------------------------------------ */
+/* Category definitions — display order, labels, icons                 */
+/* ------------------------------------------------------------------ */
+
+const CATEGORIES: { key: StoryCategory; label: string; icon: string }[] = [
+  { key: "networking", label: "Networking", icon: "🌐" },
+  { key: "deployment-cloud", label: "Deployment & Cloud", icon: "☁️" },
+  { key: "databases-search", label: "Databases & Search", icon: "🗄️" },
+  { key: "dev-tools", label: "Developer Tools", icon: "🔧" },
+  { key: "ai-ml", label: "AI & Machine Learning", icon: "🧠" },
+  { key: "systems", label: "Systems", icon: "⚙️" },
+];
+
+/* ------------------------------------------------------------------ */
+/* Logo component                                                      */
+/* ------------------------------------------------------------------ */
+
+const Logo: FC = () => (
+  <a href="/" className="group flex items-center gap-2.5 no-underline" aria-label="Absolute Devs home">
+    <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="100" height="100" rx="20" fill="#0d1117" />
+      <defs>
+        <linearGradient id="logo-grad" x1="20" y1="20" x2="80" y2="80">
+          <stop offset="0%" stopColor="#5eead4" />
+          <stop offset="50%" stopColor="#7dd3fc" />
+          <stop offset="100%" stopColor="#c4b5fd" />
+        </linearGradient>
+      </defs>
+      {/* The < bracket */}
+      <path d="M28 35 L18 50 L28 65" stroke="url(#logo-grad)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* The A */}
+      <path d="M42 65 L54 30 L66 65 M47 54 H61" stroke="url(#logo-grad)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* The /> bracket */}
+      <path d="M72 35 L82 50 L72 65" stroke="url(#logo-grad)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* The slash */}
+      <path d="M68 30 L76 22" stroke="url(#logo-grad)" strokeWidth="3.5" strokeLinecap="round" opacity="0.7" fill="none" />
+    </svg>
+    <span className="text-sm font-semibold tracking-tight text-slate-400 transition-colors group-hover:text-slate-200">
+      Absolute Devs
+    </span>
+  </a>
+);
+
+/* ------------------------------------------------------------------ */
+/* Search icon                                                         */
+/* ------------------------------------------------------------------ */
+
+const SearchIcon: FC = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="search-icon">
+    <circle cx="11" cy="11" r="8" />
+    <path d="M21 21l-4.35-4.35" />
+  </svg>
+);
+
+/* ------------------------------------------------------------------ */
 
 /** The index of every explainer. Grows automatically as stories are added. */
 export function Library() {
+  const [query, setQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState<StoryCategory | null>(null);
+
+  // Filter stories by search query and active category
+  const filteredLibrary = useMemo(() => {
+    const q = query.toLowerCase().trim();
+    return library.filter((m) => {
+      // Category filter
+      if (activeCategory && m.category !== activeCategory) return false;
+      // Text search
+      if (q) {
+        return (
+          m.title.toLowerCase().includes(q) ||
+          m.intro.lead.toLowerCase().includes(q) ||
+          m.slug.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [query, activeCategory]);
+
+  // Group filtered stories by category
+  const groupedStories = useMemo(() => {
+    const groups: { key: StoryCategory; label: string; icon: string; stories: typeof library }[] = [];
+    for (const cat of CATEGORIES) {
+      const stories = filteredLibrary.filter((m) => m.category === cat.key);
+      if (stories.length > 0) {
+        groups.push({ ...cat, stories });
+      }
+    }
+    // Catch any uncategorized stories
+    const uncategorized = filteredLibrary.filter((m) => !m.category);
+    if (uncategorized.length > 0) {
+      groups.push({ key: "systems" as StoryCategory, label: "Other", icon: "📦", stories: uncategorized });
+    }
+    return groups;
+  }, [filteredLibrary]);
+
+  // Global card index for stagger animation
+  let globalIdx = 0;
+
   return (
-    <div className="relative mx-auto flex min-h-dvh w-full max-w-4xl flex-col justify-center px-6 py-16">
+    <div className="relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-6 py-10">
       {/* faint dot grid, fading out toward the bottom */}
       <div
         aria-hidden
@@ -262,97 +359,218 @@ export function Library() {
         }}
       />
 
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="text-[11px] font-semibold tracking-[0.26em] text-teal-300/80 uppercase"
-      >
-        Interactive explainers
-      </motion.p>
-      <motion.h1
-        initial={{ opacity: 0, y: 12 }}
+      {/* ---- Top bar: Logo ---- */}
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15, duration: 0.6, ease: EASE_OUT }}
-        className="mt-4 max-w-2xl text-balance text-3xl font-semibold tracking-tight text-slate-100 sm:text-4xl"
+        transition={{ duration: 0.5, ease: EASE_OUT }}
+        className="relative mb-12"
       >
-        Systems, explained <span className="shimmer-text">in motion.</span>
-      </motion.h1>
-      <motion.p
+        <Logo />
+      </motion.div>
+
+      {/* ---- Hero ---- */}
+      <div className="relative mb-10">
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-[11px] font-semibold tracking-[0.26em] text-teal-300/80 uppercase"
+        >
+          Interactive explainers
+        </motion.p>
+        <motion.h1
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.6, ease: EASE_OUT }}
+          className="mt-4 max-w-2xl text-balance text-3xl font-semibold tracking-tight text-slate-100 sm:text-4xl"
+        >
+          Systems, explained <span className="shimmer-text">in motion.</span>
+        </motion.h1>
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.28, duration: 0.6, ease: EASE_OUT }}
+          className="mt-4 max-w-xl text-[15px] leading-relaxed text-slate-400"
+        >
+          Not articles — little machines. Pause them, scrub them, break them on purpose.{" "}
+          <span className="text-slate-500">{library.length} systems and counting.</span>
+        </motion.p>
+      </div>
+
+      {/* ---- Search + Category Filters ---- */}
+      <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.28, duration: 0.6, ease: EASE_OUT }}
-        className="mt-4 max-w-xl text-[15px] leading-relaxed text-slate-400"
+        transition={{ delay: 0.35, duration: 0.5, ease: EASE_OUT }}
+        className="relative mb-10"
       >
-        Not articles — little machines. Pause them, scrub them, break them on purpose.{" "}
-        <span className="text-slate-500">{library.length} systems and counting.</span>
-      </motion.p>
-
-      <div className="mt-12 grid gap-5 sm:grid-cols-2">
-        {library.map((m, i) => {
-          const { accent, Motif } = FLAIR[m.slug] ?? DEFAULT_FLAIR;
-          return (
-            <motion.a
-              key={m.slug}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35 + i * 0.07, duration: 0.55, ease: EASE_OUT }}
-              href={storyHref(m.slug)}
-              style={{ "--acc": accent } as CSSProperties}
-              className="glass story-card group relative flex flex-col overflow-hidden rounded-2xl"
+        {/* Search */}
+        <div className="search-wrapper glass">
+          <SearchIcon />
+          <input
+            id="library-search"
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search explainers…"
+            className="search-input"
+            aria-label="Search explainers"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              className="search-clear"
+              aria-label="Clear search"
             >
-              {/* accent hairline along the top edge */}
-              <div
-                aria-hidden
-                className="absolute inset-x-0 top-0 h-px opacity-60 transition-opacity duration-300 group-hover:opacity-100"
-                style={{ background: `linear-gradient(90deg, transparent, ${accent}88, transparent)` }}
-              />
-              {/* corner glow that wakes up on hover */}
-              <div
-                aria-hidden
-                className="absolute -top-20 -right-14 h-48 w-48 rounded-full blur-3xl transition-opacity duration-500"
-                style={{ background: accent, opacity: 0.06 }}
-              />
-              <div
-                aria-hidden
-                className="absolute -top-20 -right-14 h-48 w-48 rounded-full opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-[0.16]"
-                style={{ background: accent }}
-              />
+              ✕
+            </button>
+          )}
+        </div>
 
-              <div className="relative flex h-24 items-center border-b border-white/[0.06] px-4">
-                <span className="absolute top-3 left-5 font-mono text-[10px] tracking-[0.2em] text-slate-600">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <Motif a={accent} />
-              </div>
+        {/* Category pills */}
+        <div className="category-pills mt-4">
+          <button
+            onClick={() => setActiveCategory(null)}
+            className={`category-pill ${activeCategory === null ? "active" : ""}`}
+          >
+            All
+          </button>
+          {CATEGORIES.map((cat) => {
+            const count = library.filter((m) => m.category === cat.key).length;
+            if (count === 0) return null;
+            return (
+              <button
+                key={cat.key}
+                onClick={() => setActiveCategory(activeCategory === cat.key ? null : cat.key)}
+                className={`category-pill ${activeCategory === cat.key ? "active" : ""}`}
+              >
+                <span className="category-pill-icon">{cat.icon}</span>
+                {cat.label}
+                <span className="category-pill-count">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      </motion.div>
 
-              <div className="flex flex-1 flex-col p-6 pt-5">
-                <p className="text-lg font-semibold text-slate-100 transition-colors group-hover:text-white">{m.title}</p>
-                <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-slate-400">{m.intro.lead}</p>
-                <p className="mt-auto pt-4 text-xs font-medium" style={{ color: accent }}>
-                  {m.intro.begin}{" "}
-                  <span aria-hidden className="inline-block transition-transform duration-300 group-hover:translate-x-1">
-                    →
-                  </span>
-                  <span className="ml-3 text-slate-500">or</span>{" "}
-                  <span
-                    role="link"
-                    tabIndex={0}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.location.href = `${storyHref(m.slug)}?read`;
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") window.location.href = `${storyHref(m.slug)}?read`;
-                    }}
-                    className="text-slate-400 underline decoration-slate-700 underline-offset-4 hover:text-slate-200"
-                  >
-                    read it as an essay
-                  </span>
-                </p>
-              </div>
-            </motion.a>
-          );
-        })}
+      {/* ---- Grouped Cards ---- */}
+      <div className="relative flex-1">
+        <AnimatePresence mode="wait">
+          {groupedStories.length === 0 ? (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="flex flex-col items-center justify-center py-20 text-center"
+            >
+              <div className="text-4xl mb-4">🔍</div>
+              <p className="text-lg font-medium text-slate-300">No explainers found</p>
+              <p className="mt-2 text-sm text-slate-500">
+                Try a different search term or clear your filters.
+              </p>
+              <button
+                onClick={() => { setQuery(""); setActiveCategory(null); }}
+                className="mt-4 text-sm font-medium text-teal-300 underline decoration-slate-700 underline-offset-4 hover:text-teal-200"
+              >
+                Clear all filters
+              </button>
+            </motion.div>
+          ) : (
+            <motion.div
+              key={`groups-${activeCategory ?? "all"}-${query}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-12"
+            >
+              {groupedStories.map((group) => (
+                <section key={group.key} aria-labelledby={`section-${group.key}`}>
+                  {/* Section header */}
+                  <div className="section-header mb-5">
+                    <div className="section-header-line" />
+                    <h2 id={`section-${group.key}`} className="section-title">
+                      <span className="section-icon">{group.icon}</span>
+                      {group.label}
+                    </h2>
+                    <span className="section-count">{group.stories.length}</span>
+                  </div>
+
+                  {/* Cards grid */}
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    {group.stories.map((m) => {
+                      const { accent, Motif } = FLAIR[m.slug] ?? DEFAULT_FLAIR;
+                      const idx = globalIdx++;
+                      return (
+                        <motion.a
+                          key={m.slug}
+                          initial={{ opacity: 0, y: 14 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.1 + idx * 0.06, duration: 0.55, ease: EASE_OUT }}
+                          href={storyHref(m.slug)}
+                          style={{ "--acc": accent } as CSSProperties}
+                          className="glass story-card group relative flex flex-col overflow-hidden rounded-2xl"
+                        >
+                          {/* accent hairline along the top edge */}
+                          <div
+                            aria-hidden
+                            className="absolute inset-x-0 top-0 h-px opacity-60 transition-opacity duration-300 group-hover:opacity-100"
+                            style={{ background: `linear-gradient(90deg, transparent, ${accent}88, transparent)` }}
+                          />
+                          {/* corner glow that wakes up on hover */}
+                          <div
+                            aria-hidden
+                            className="absolute -top-20 -right-14 h-48 w-48 rounded-full blur-3xl transition-opacity duration-500"
+                            style={{ background: accent, opacity: 0.06 }}
+                          />
+                          <div
+                            aria-hidden
+                            className="absolute -top-20 -right-14 h-48 w-48 rounded-full opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-[0.16]"
+                            style={{ background: accent }}
+                          />
+
+                          <div className="relative flex h-24 items-center border-b border-white/[0.06] px-4">
+                            <span className="absolute top-3 left-5 font-mono text-[10px] tracking-[0.2em] text-slate-600">
+                              {String(idx + 1).padStart(2, "0")}
+                            </span>
+                            <Motif a={accent} />
+                          </div>
+
+                          <div className="flex flex-1 flex-col p-6 pt-5">
+                            <p className="text-lg font-semibold text-slate-100 transition-colors group-hover:text-white">{m.title}</p>
+                            <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-slate-400">{m.intro.lead}</p>
+                            <p className="mt-auto pt-4 text-xs font-medium" style={{ color: accent }}>
+                              {m.intro.begin}{" "}
+                              <span aria-hidden className="inline-block transition-transform duration-300 group-hover:translate-x-1">
+                                →
+                              </span>
+                              <span className="ml-3 text-slate-500">or</span>{" "}
+                              <span
+                                role="link"
+                                tabIndex={0}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  window.location.href = `${storyHref(m.slug)}?read`;
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") window.location.href = `${storyHref(m.slug)}?read`;
+                                }}
+                                className="text-slate-400 underline decoration-slate-700 underline-offset-4 hover:text-slate-200"
+                              >
+                                read it as an essay
+                              </span>
+                            </p>
+                          </div>
+                        </motion.a>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <motion.p

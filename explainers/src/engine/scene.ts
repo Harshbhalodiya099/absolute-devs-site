@@ -12,7 +12,7 @@ import { packetSpec, wireSpec } from "./actors";
 import { reverseRoute, route as makeRoute, type Placeable, type RouteOpts } from "./geometry";
 import { all, dim, frame, pulse, resetCam, seq, stagger, travel, undim, wait, draw as drawWire, type Motion } from "./motion";
 import { validateContent } from "./validate";
-import type { AccentName } from "./glyphs";
+import type { AccentName } from "../vocab";
 import type { ActorRef, ActorSpec, ParamDef, Params, RouteRef, SceneContent, SceneDef, StepDef } from "./types";
 
 /* ---------------- typed params ---------------- */

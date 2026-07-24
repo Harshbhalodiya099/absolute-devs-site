@@ -2,6 +2,7 @@ import { defineMeta } from "../../engine";
 
 export const meta = defineMeta({
   slug: "operating-systems",
+  category: "systems",
   title: "How your operating system fakes an entire computer",
   intro: {
     eyebrow: "An interactive explainer",

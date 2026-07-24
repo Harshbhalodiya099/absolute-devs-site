@@ -4,7 +4,7 @@
  * connections on edges. Glyph and accent names are typed unions — an invalid
  * name is a compile error, not a blank spot on the stage.
  */
-import type { AccentName, GlyphName } from "./glyphs";
+import type { AccentName, GlyphName } from "../vocab";
 import type { ActorSpec, Point, RouteRef } from "./types";
 
 interface Common {

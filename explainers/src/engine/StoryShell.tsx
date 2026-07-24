@@ -8,11 +8,17 @@ import type { Params, Reference, SceneDef, StoryDef } from "./types";
 const SPEEDS = [0.25, 0.5, 1, 2];
 const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
+/** Where a finished story sends the learner next (the sibling mode, e.g. the quiz). */
+export interface NextMode {
+  label: string;
+  go: () => void;
+}
+
 /**
  * The chrome around any story: intro, narrative header, stage, step captions,
  * inspector line, params, scrubber, controls, takeaway. Topic-agnostic.
  */
-export function StoryShell({ story }: { story: StoryDef }) {
+export function StoryShell({ story, next }: { story: StoryDef; next?: NextMode }) {
   const initialScene = useMemo(() => {
     const raw = new URLSearchParams(window.location.search).get("scene");
     const n = raw ? Number.parseInt(raw, 10) : NaN;
@@ -61,6 +67,7 @@ export function StoryShell({ story }: { story: StoryDef }) {
         }}
         sceneMeta={{ index, total: story.scenes.length, goTo: go, titles: story.scenes.map((s) => s.title) }}
         references={index === story.scenes.length - 1 ? story.references : undefined}
+        next={index === story.scenes.length - 1 ? next : undefined}
       />
     </div>
   );
@@ -76,6 +83,7 @@ function ScenePlayer({
   onRestart,
   sceneMeta,
   references,
+  next,
 }: {
   scene: SceneDef;
   direction: number;
@@ -85,6 +93,8 @@ function ScenePlayer({
   sceneMeta: { index: number; total: number; goTo: (i: number) => void; titles: string[] };
   /** Shown with the takeaway on the story's final scene. */
   references?: Reference[];
+  /** On the final scene, the sibling mode to continue into (quiz → sim). */
+  next?: NextMode;
 }) {
   const [params, setParams] = useState<Params>(() =>
     Object.fromEntries((scene.params ?? []).map((p) => [p.id, p.initial])),
@@ -304,6 +314,24 @@ function ScenePlayer({
               >
                 {scene.nextPrompt} →
               </motion.button>
+            ) : next ? (
+              /* End of the story: hand the learner to the next mode (quiz → sim). */
+              <>
+                <button
+                  onClick={onRestart}
+                  className="cursor-pointer rounded-full border border-slate-700/70 px-4 py-2.5 text-xs font-medium text-slate-400 transition-colors hover:border-slate-500 hover:text-slate-200"
+                >
+                  ↺ Replay
+                </button>
+                <motion.button
+                  onClick={next.go}
+                  animate={player.ended ? { scale: [1, 1.03, 1] } : {}}
+                  transition={{ repeat: player.ended ? Infinity : 0, repeatDelay: 2.4, duration: 0.7 }}
+                  className="cursor-pointer rounded-full bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-[0_0_24px_rgba(94,234,212,0.15)] transition-all hover:bg-white hover:shadow-[0_0_32px_rgba(94,234,212,0.3)]"
+                >
+                  {next.label} →
+                </motion.button>
+              </>
             ) : (
               <button
                 onClick={onRestart}

@@ -2,6 +2,7 @@ import { defineMeta } from "../../engine";
 
 export const meta = defineMeta({
   slug: "dns",
+  category: "networking",
   title: "How the internet finds google.com",
   intro: {
     eyebrow: "An interactive explainer",

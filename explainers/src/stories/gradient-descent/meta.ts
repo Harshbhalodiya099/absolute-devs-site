@@ -2,6 +2,7 @@ import { defineMeta } from "../../engine";
 
 export const meta = defineMeta({
   slug: "gradient-descent",
+  category: "ai-ml",
   title: "How gradient descent makes machines learn",
   intro: {
     eyebrow: "An interactive explainer",

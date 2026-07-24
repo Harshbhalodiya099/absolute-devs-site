@@ -10,10 +10,20 @@
  */
 import type { StoryDef } from "./types";
 
+/** The topic buckets shown as sections on the library page. */
+export type StoryCategory =
+  | "networking"
+  | "deployment-cloud"
+  | "databases-search"
+  | "dev-tools"
+  | "ai-ml"
+  | "systems";
+
 /** What the library page needs to list a story without loading its scenes. */
 export interface StoryMeta {
   slug: string;
   title: string;
+  category?: StoryCategory;
   intro: {
     eyebrow: string;
     title: string;
